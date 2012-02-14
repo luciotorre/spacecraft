@@ -2,3 +2,4 @@
 dropin.cache
 _trial_temp
 twistd.pid
+virtualenv/
