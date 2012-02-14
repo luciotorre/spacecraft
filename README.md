@@ -8,7 +8,7 @@ You can use fabric to do pretty much anything there is to do currently:
 To run the tests
 ----------------
 
-$ fab test
+    $ fab test
 
 
 To start a server
