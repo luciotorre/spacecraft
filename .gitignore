@@ -1,0 +1,4 @@
+*.pyc
+dropin.cache
+_trial_temp
+twistd.pid

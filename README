@@ -1,1 +1,14 @@
 An AI space figthing playground.
+
+you can use the scripts to start a server, some clients and some monitors.
+
+run tests with
+$ trial spacecraft
+
+TODO:
+- everything
+- wraparound
+- bullets
+- energy
+- game logic
+
