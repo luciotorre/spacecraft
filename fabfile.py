@@ -59,7 +59,7 @@ except ImportError:
 
 
 def install_requirements():
-    local("virtualenv/bin/pip install -r requirements.txt", capture=False)
+    local("virtualenv/bin/pip install -U -r requirements.txt", capture=False)
 
 
 def check_bootstrap():
