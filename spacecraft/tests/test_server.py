@@ -7,6 +7,20 @@ from twisted.internet import defer, reactor
 from spacecraft import server
 
 
+def update_collector(target):
+    def update_collect(*args, **kwargs):
+        if args and kwargs:
+            raise TypeError("cant use both args and kwargs.")
+
+        if args and len(args) == 1:
+            target.append(args[0])
+
+        if kwargs:
+            target.append(kwargs)
+
+    return update_collect
+
+
 class TestService(TestCase):
 
     def setUp(self):
@@ -59,7 +73,7 @@ class TestMap(TestCase):
         monitor = server.Monitor()
         monitor.register(map)
         result = []
-        monitor.sendMessage = result.append
+        monitor.sendMessage = update_collector(result)
         monitor.sendUpdate()
         self.assertEquals(len(result), 2)
         self.assertEquals(result[0], player.get_repr())
@@ -70,3 +84,33 @@ class TestMap(TestCase):
         player.register(map)
         player.messageReceived(dict(type="throttle", value=0.5))
         self.assertEquals(player.throttle, 0.5)
+
+    def test_gps(self):
+        map = server.Map(100, 100)
+        player = server.Player()
+        player.register(map)
+        result = []
+        player.sendMessage = update_collector(result)
+        player.sendUpdate()
+        result = [r for r in result if r["type"] == "gps"]
+
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0]["position"], tuple(player.body.position))
+
+    def test_radar(self):
+        map = server.Map(100, 100)
+        player = server.Player()
+        player.register(map)
+        player.body.position = (100, 100)
+
+        player2 = server.Player()
+        player2.register(map)
+        player2.body.position = (200, 100)
+
+        result = []
+        player.sendMessage = update_collector(result)
+        player.sendUpdate()
+        result = [r for r in result if r["type"] == "radar"]
+
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0]["position"], tuple(player2.body.position))
