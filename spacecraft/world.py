@@ -6,6 +6,10 @@ from Box2D import b2
 from twisted.application import service
 from twisted.internet import task
 
+STATUS_WAITING = "waiting"
+STATUS_RUNNING = "running"
+STATUS_FINISHED = "finished"
+
 
 class Game(service.Service):
 
@@ -19,8 +23,18 @@ class Game(service.Service):
 
         self.world = b2.world(gravity=(0, 0), doSleep=True)
         self.clients = []
-
+        self.status = STATUS_WAITING
+        self.winner = None
         self.update_loop = task.LoopingCall(self.doStep)
+
+    def start_game(self):
+        self.status = STATUS_RUNNING
+        self.notifyEvent(type="game_status", current=self.status)
+
+    def finish_game(self, winner):
+        self.status = STATUS_FINISHED
+        self.winner = winner
+        self.notifyEvent(type="game_status", current=self.status)
 
     def startService(self):
         self.update_loop.start(self.timeStep)
@@ -28,13 +42,19 @@ class Game(service.Service):
     def stopService(self):
         self.update_loop.stop()
 
-    def doStep(self):
+    def notifyEvent(self, **kwargs):
         for client in self.clients:
-            client.execute()
-        self.step_world()
+            client.sendMessage(**kwargs)
+
+    def doStep(self):
+        if self.status is STATUS_RUNNING:
+            for client in self.clients:
+                client.execute()
+            self.step_world()
+            self.step += 1
+
         for client in self.clients:
             client.sendUpdate()
-        self.step += 1
 
     def step_world(self):
         self.world.Step(self.timeStep, self.vel_iters, self.pos_iters)

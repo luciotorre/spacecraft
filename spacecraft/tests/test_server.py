@@ -55,7 +55,7 @@ class TestService(TestCase):
         protocol.transport.loseConnection()
 
 
-class TestMap(TestCase):
+class TestGame(TestCase):
 
     def test_create_player(self):
         map = world.Game(100, 100)

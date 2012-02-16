@@ -20,6 +20,26 @@ class TestCollision(TestCase):
 
 class TestWorld(TestCase):
 
+    def test_events(self):
+        map = world.Game(100, 100)
+
+        class Mock:
+            pass
+
+        result = []
+        mock = Mock()
+        mock.sendMessage = lambda **kwargs: result.append(kwargs)
+        map.clients.append(mock)
+        map.start_game()
+        self.assertEquals(len(result), 1)
+        self.assertEquals(result[0],
+            dict(type="game_status", current=world.STATUS_RUNNING))
+
+        map.finish_game(None)
+        self.assertEquals(len(result), 2)
+        self.assertEquals(result[1],
+            dict(type="game_status", current=world.STATUS_FINISHED))
+
     def test_wraparound(self):
         map = world.Game(1024, 768)
         o1 = world.PowerUp(map, 1024 + 100, 100)
