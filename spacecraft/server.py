@@ -131,13 +131,6 @@ class RadarSensor(object):
 
 
 class Player(Client):
-    # the maximum possible force from the engines, in newtons
-    max_force = 10
-    # the maximum instant turn per step, in radians
-    max_turn = 0.1
-    # number of steps that it takes for weapon to reload
-    reload_delay = 10
-
     def __init__(self):
         self.throttle = 0
         self.turn = 0
@@ -156,12 +149,13 @@ class Player(Client):
     def execute(self):
         body = self.object.body
         if self.turn:
-            body.angle = (body.angle + self.max_turn *
+            body.angle = (body.angle + self.player.max_turn *
                 self.turn) % (2 * math.pi)
             self.turn = 0
         if self.throttle != 0:
             force = euclid.Matrix3.new_rotate(body.angle) * \
-                    euclid.Vector2(1, 0) * self.max_force * self.throttle
+                    euclid.Vector2(1, 0) * self.player.max_force * \
+                    self.throttle
             body.ApplyForce(tuple(force), body.position)
             self.throttle = 0
         if self.reloading:
@@ -172,7 +166,7 @@ class Player(Client):
                 speedx, speedy = euclid.Matrix3.new_rotate(body.angle) * \
                     euclid.Vector2(15, 0) + body.linearVelocity
                 bullet = world.Bullet(self.map, x, y, speedx, speedy)
-                self.reloading = self.reload_delay
+                self.reloading = self.player.reload_delay
                 self.fire = 0
 
     def messageReceived(self, message):
@@ -252,7 +246,7 @@ class Options(usage.Options):
 def makeService(options):
     root_service = service.MultiService()
 
-    map = world.Map(options["xsize"], options["ysize"])
+    map = world.Game(options["xsize"], options["ysize"])
     map.setServiceParent(root_service)
 
     monitor_service = internet.TCPServer(

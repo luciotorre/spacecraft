@@ -6,8 +6,12 @@ from Box2D import b2
 from twisted.application import service
 from twisted.internet import task
 
+STATUS_WAITING = "waiting"
+STATUS_RUNNING = "running"
+STATUS_FINISHED = "finished"
 
-class Map(service.Service):
+
+class Game(service.Service):
 
     def __init__(self, xsize, ysize, frames=20):
         self.xsize = xsize
@@ -19,8 +23,18 @@ class Map(service.Service):
 
         self.world = b2.world(gravity=(0, 0), doSleep=True)
         self.clients = []
-
+        self.status = STATUS_WAITING
+        self.winner = None
         self.update_loop = task.LoopingCall(self.doStep)
+
+    def start_game(self):
+        self.status = STATUS_RUNNING
+        self.notifyEvent(type="game_status", current=self.status)
+
+    def finish_game(self, winner):
+        self.status = STATUS_FINISHED
+        self.winner = winner
+        self.notifyEvent(type="game_status", current=self.status)
 
     def startService(self):
         self.update_loop.start(self.timeStep)
@@ -28,14 +42,34 @@ class Map(service.Service):
     def stopService(self):
         self.update_loop.stop()
 
-    def doStep(self):
+    def notifyEvent(self, **kwargs):
         for client in self.clients:
-            client.execute()
-        self.world.Step(self.timeStep, self.vel_iters, self.pos_iters)
-        self.world.ClearForces()
+            client.sendMessage(**kwargs)
+
+    def doStep(self):
+        if self.status is STATUS_RUNNING:
+            for client in self.clients:
+                client.execute()
+            self.step_world()
+            self.step += 1
+
         for client in self.clients:
             client.sendUpdate()
-        self.step += 1
+
+    def step_world(self):
+        self.world.Step(self.timeStep, self.vel_iters, self.pos_iters)
+        self.world.ClearForces()
+        for contact in self.world.contacts:
+            if not contact.touching:
+                continue
+            o1 = contact.fixtureA.body.userData
+            o2 = contact.fixtureB.body.userData
+            o1.contact(o2)
+            o2.contact(o1)
+        # wraparound
+        for body in self.world.bodies:
+            x, y = body.position
+            body.position = (x % self.xsize), (y % self.ysize)
 
     def get_map_description(self):
         return dict(xsize=self.xsize, ysize=self.ysize)
@@ -49,9 +83,9 @@ class Map(service.Service):
 
 class ObjectBase(object):
 
-    def __init__(self, map):
+    def __init__(self, map, x=None, y=None):
         self.map = map
-        self.create_body()
+        self.create_body(x, y)
 
     def create_body(self):
         raise NotImplementedError()
@@ -73,8 +107,12 @@ class ObjectBase(object):
             velocity=tuple(self.body.linearVelocity))
 
     def destroy(self):
-        self.map.world.DestroyBody(self.body)
-        self.body = None
+        if self.body is not None:
+            self.map.world.DestroyBody(self.body)
+            self.body = None
+
+    def contact(self, other):
+        """This object is in contact with other."""
 
 
 class PowerUp(ObjectBase):
@@ -91,8 +129,28 @@ class PowerUp(ObjectBase):
                                                 userData=self)
         self.body.CreateCircleFixture(radius=1, density=1)
 
+    def contact(self, other):
+        self.destroy()
+
+
+class EngineForcePowerUp(PowerUp):
+    increase = 1.2
+
+    def contact(self, other):
+        if isinstance(other, PlayerObject):
+            other.max_force *= self.increase
+        super(EngineForcePowerUp, self).contact(other)
+
 
 class PlayerObject(ObjectBase):
+    # the maximum possible force from the engines in newtons
+    max_force = 100
+    # the maximum possible force from the engines, in newtons
+    max_force = 10
+    # the maximum instant turn per step, in radians
+    max_turn = 0.1
+    # number of steps that it takes for weapon to reload
+    reload_delay = 10
 
     def get_type(self):
         return "player"
