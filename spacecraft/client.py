@@ -18,6 +18,9 @@ class SampleClient(Client):
 
     def messageReceived(self, message):
         print message
+        self.command("throttle", value=1)
+        self.command("turn", value=-1)
+        self.command("fire")
 
     def connectionMade(self):
         self.command("throttle", value=1)
