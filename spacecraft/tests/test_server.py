@@ -58,7 +58,7 @@ class TestService(TestCase):
 class TestMap(TestCase):
 
     def test_create_player(self):
-        map = world.Map(100, 100)
+        map = world.Game(100, 100)
         player = server.Player()
         player.register(map)
         self.assertEquals(len(map.world.bodies), 1)
@@ -67,7 +67,7 @@ class TestMap(TestCase):
         self.assertTrue("y" in prepr)
 
     def test_monitor(self):
-        map = world.Map(100, 100)
+        map = world.Game(100, 100)
         player = server.Player()
         player.register(map)
         monitor = server.Monitor()
@@ -79,14 +79,14 @@ class TestMap(TestCase):
         self.assertEquals(result[0], player.object.get_repr())
 
     def test_throttle(self):
-        map = world.Map(100, 100)
+        map = world.Game(100, 100)
         player = server.Player()
         player.register(map)
         player.messageReceived(dict(type="throttle", value=0.5))
         self.assertEquals(player.throttle, 0.5)
 
     def test_gps(self):
-        map = world.Map(100, 100)
+        map = world.Game(100, 100)
         player = server.Player()
         player.register(map)
         result = []
@@ -99,7 +99,7 @@ class TestMap(TestCase):
             tuple(player.object.body.position))
 
     def test_radar(self):
-        map = world.Map(100, 100)
+        map = world.Game(100, 100)
         player = server.Player()
         player.register(map)
         player.object.body.position = (100, 100)

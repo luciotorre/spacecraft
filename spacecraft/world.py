@@ -7,7 +7,7 @@ from twisted.application import service
 from twisted.internet import task
 
 
-class Map(service.Service):
+class Game(service.Service):
 
     def __init__(self, xsize, ysize, frames=20):
         self.xsize = xsize
@@ -39,6 +39,17 @@ class Map(service.Service):
     def step_world(self):
         self.world.Step(self.timeStep, self.vel_iters, self.pos_iters)
         self.world.ClearForces()
+        for contact in self.world.contacts:
+            if not contact.touching:
+                continue
+            o1 = contact.fixtureA.body.userData
+            o2 = contact.fixtureB.body.userData
+            o1.contact(o2)
+            o2.contact(o1)
+        # wraparound
+        for body in self.world.bodies:
+            x, y = body.position
+            body.position = (x % self.xsize), (y % self.ysize)
 
     def get_map_description(self):
         return dict(xsize=self.xsize, ysize=self.ysize)
@@ -76,8 +87,12 @@ class ObjectBase(object):
             velocity=tuple(self.body.linearVelocity))
 
     def destroy(self):
-        self.map.world.DestroyBody(self.body)
-        self.body = None
+        if self.body is not None:
+            self.map.world.DestroyBody(self.body)
+            self.body = None
+
+    def contact(self, other):
+        """This object is in contact with other."""
 
 
 class PowerUp(ObjectBase):
@@ -94,8 +109,22 @@ class PowerUp(ObjectBase):
                                                 userData=self)
         self.body.CreateCircleFixture(radius=1, density=1)
 
+    def contact(self, other):
+        self.destroy()
+
+
+class EngineForcePowerUp(PowerUp):
+    increase = 1.2
+
+    def contact(self, other):
+        if isinstance(other, PlayerObject):
+            other.max_force *= self.increase
+        super(EngineForcePowerUp, self).contact(other)
+
 
 class PlayerObject(ObjectBase):
+    # the maximum possible force from the engines in newtons
+    max_force = 100
 
     def get_type(self):
         return "player"

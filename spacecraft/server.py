@@ -131,8 +131,6 @@ class RadarSensor(object):
 
 
 class Player(Client):
-    # the maximum possible force from the engines in newtons
-    max_force = 100
 
     def __init__(self):
         self.throttle = 0
@@ -150,7 +148,7 @@ class Player(Client):
         if self.throttle != 0:
             body = self.object.body
             force = euclid.Matrix3.new_rotate(body.angle) * \
-                    euclid.Vector2(1, 0) * self.max_force * self.throttle
+                    euclid.Vector2(1, 0) * self.player.max_force * self.throttle
             body.ApplyForce(tuple(force), body.position)
             self.throttle = 0
 
@@ -221,7 +219,7 @@ class Options(usage.Options):
 def makeService(options):
     root_service = service.MultiService()
 
-    map = world.Map(options["xsize"], options["ysize"])
+    map = world.Game(options["xsize"], options["ysize"])
     map.setServiceParent(root_service)
 
     monitor_service = internet.TCPServer(
