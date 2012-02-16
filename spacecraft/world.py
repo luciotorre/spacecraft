@@ -31,11 +31,14 @@ class Map(service.Service):
     def doStep(self):
         for client in self.clients:
             client.execute()
-        self.world.Step(self.timeStep, self.vel_iters, self.pos_iters)
-        self.world.ClearForces()
+        self.step_world()
         for client in self.clients:
             client.sendUpdate()
         self.step += 1
+
+    def step_world(self):
+        self.world.Step(self.timeStep, self.vel_iters, self.pos_iters)
+        self.world.ClearForces()
 
     def get_map_description(self):
         return dict(xsize=self.xsize, ysize=self.ysize)
@@ -49,9 +52,9 @@ class Map(service.Service):
 
 class ObjectBase(object):
 
-    def __init__(self, map):
+    def __init__(self, map, x=None, y=None):
         self.map = map
-        self.create_body()
+        self.create_body(x, y)
 
     def create_body(self):
         raise NotImplementedError()
