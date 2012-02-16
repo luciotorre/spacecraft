@@ -55,6 +55,51 @@ class Map(service.Service):
         self.clients.remove(client)
 
 
+class ObjectBase(object):
+
+    def __init__(self, map):
+        self.map = map
+        self.create_body()
+
+    def create_body(self):
+        raise NotImplementedError()
+
+    def get_repr(self):
+        return dict(
+            type=self.get_type(),
+            x=self.body.position[0], y=self.body.position[1])
+
+    def get_type(self):
+        return "object"
+
+    def get_id(self):
+        return id(self)
+
+    def get_full_position(self):
+        return dict(position=tuple(self.body.position),
+            angle=self.body.angle,
+            velocity=tuple(self.body.linearVelocity))
+
+    def destroy(self):
+        self.map.world.DestroyBody(self.body)
+        self.body = None
+
+
+class PlayerObject(ObjectBase):
+
+    def get_type(self):
+        return "player"
+
+    def create_body(self, x=None, y=None):
+        if x is None:
+            x = random.random() * self.map.xsize
+        if y is None:
+            y = random.random() * self.map.ysize
+        self.body = self.map.world.CreateDynamicBody(position=(x, y),
+                                                userData=self)
+        self.body.CreateCircleFixture(radius=1, density=1)
+
+
 class ClientBase(LineReceiver):
 
     def lineReceived(self, line):
@@ -101,7 +146,7 @@ class Client(ClientBase):
         pass
 
     def sendUpdate(self):
-        self.sendMessage(dict(type="time", step=self.map.step))
+        self.sendMessage(type="time", step=self.map.step)
 
 
 class ClientFactory(Factory):
@@ -123,8 +168,8 @@ class GpsSensor(object):
 
     def sendUpdate(self):
         self.player.sendMessage(type="gps",
-            position=(self.player.body.position[0],
-                    self.player.body.position[1]))
+            position=(self.player.object.body.position[0],
+                    self.player.object.body.position[1]))
 
 
 class RayCastCallback(Box2D.b2RayCastCallback):
@@ -161,8 +206,8 @@ class RadarSensor(object):
         for step in range(self.steps):
             callback = RayCastCallback()
 
-            point1 = self.player.body.position
-            point2 = tuple(ray + self.player.body.position)
+            point1 = self.player.object.body.position
+            point2 = tuple(ray + self.player.object.body.position)
             ray = rotate * ray
             self.player.map.world.RayCast(callback, point1, point2)
             if callback.fixture is not None:
@@ -182,20 +227,11 @@ class Player(Client):
 
     def register(self, map):
         Client.register(self, map)
-        self.create_player()
+        self.object = PlayerObject(self.map)
 
     def unregister(self):
         Client.unregister(self)
-        self.map.world.DestroyBody(self.body)
-        self.body = None
-
-    def create_player(self):
-        x = random.random() * self.map.xsize
-        y = random.random() * self.map.ysize
-        self.body = self.map.world.CreateDynamicBody(position=(x, y),
-                                                userData=self)
-        self.body.CreateCircleFixture(
-            radius=1, density=1)
+        self.object.destroy()
 
     def execute(self):
         if self.throttle != 0:
@@ -203,23 +239,6 @@ class Player(Client):
                     euclid.Vector2(1, 0) * self.max_force * self.throttle
             self.body.ApplyForce(tuple(force), self.body.position)
             self.throttle = 0
-
-    def get_repr(self):
-        return dict(
-            type="player",
-            x=self.body.position[0], y=self.body.position[1],
-            throttle=self.throttle)
-
-    def get_type(self):
-        return "player"
-
-    def get_id(self):
-        return id(self)
-
-    def get_full_position(self):
-        return dict(position=tuple(self.body.position),
-            angle=self.body.angle,
-            velocity=tuple(self.body.linearVelocity))
 
     def messageReceived(self, message):
         msg_type = message.get("type", None)
@@ -243,7 +262,7 @@ class Player(Client):
     def sendUpdate(self):
         for sensor in self.sensors:
             sensor.sendUpdate()
-        self.sendMessage(dict(type="time", step=self.map.step))
+        self.sendMessage(type="time", step=self.map.step)
 
 
 class PlayerFactory(ClientFactory):
@@ -264,7 +283,7 @@ class Monitor(Client):
     def sendUpdate(self):
         for body in self.map.world.bodies:
             self.sendMessage(body.userData.get_repr())
-        self.sendMessage(dict(type="time", step=self.map.step))
+        self.sendMessage(type="time", step=self.map.step)
 
 
 class MonitorFactory(ClientFactory):

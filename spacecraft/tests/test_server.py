@@ -62,7 +62,7 @@ class TestMap(TestCase):
         player = server.Player()
         player.register(map)
         self.assertEquals(len(map.world.bodies), 1)
-        prepr = player.get_repr()
+        prepr = player.object.get_repr()
         self.assertTrue("x" in prepr)
         self.assertTrue("y" in prepr)
 
@@ -76,7 +76,7 @@ class TestMap(TestCase):
         monitor.sendMessage = update_collector(result)
         monitor.sendUpdate()
         self.assertEquals(len(result), 2)
-        self.assertEquals(result[0], player.get_repr())
+        self.assertEquals(result[0], player.object.get_repr())
 
     def test_throttle(self):
         map = server.Map(100, 100)
@@ -95,17 +95,18 @@ class TestMap(TestCase):
         result = [r for r in result if r["type"] == "gps"]
 
         self.assertEquals(len(result), 1)
-        self.assertEquals(result[0]["position"], tuple(player.body.position))
+        self.assertEquals(result[0]["position"],
+            tuple(player.object.body.position))
 
     def test_radar(self):
         map = server.Map(100, 100)
         player = server.Player()
         player.register(map)
-        player.body.position = (100, 100)
+        player.object.body.position = (100, 100)
 
         player2 = server.Player()
         player2.register(map)
-        player2.body.position = (200, 100)
+        player2.object.body.position = (200, 100)
 
         result = []
         player.sendMessage = update_collector(result)
@@ -113,4 +114,5 @@ class TestMap(TestCase):
         result = [r for r in result if r["type"] == "radar"]
 
         self.assertEquals(len(result), 1)
-        self.assertEquals(result[0]["position"], tuple(player2.body.position))
+        self.assertEquals(result[0]["position"],
+            tuple(player2.object.body.position))
