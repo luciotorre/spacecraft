@@ -148,9 +148,10 @@ class Player(Client):
 
     def execute(self):
         if self.throttle != 0:
-            force = euclid.Matrix3.new_rotate(self.body.angle) * \
+            body = self.object.body
+            force = euclid.Matrix3.new_rotate(body.angle) * \
                     euclid.Vector2(1, 0) * self.max_force * self.throttle
-            self.body.ApplyForce(tuple(force), self.body.position)
+            body.ApplyForce(tuple(force), body.position)
             self.throttle = 0
 
     def messageReceived(self, message):
