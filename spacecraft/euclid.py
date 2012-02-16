@@ -614,6 +614,9 @@ class Matrix3:
                    self.e, self.f, self.g,
                    self.i, self.j, self.k)
 
+    def __eq__(self, other):
+        return self[:] == other[:]
+
     def __getitem__(self, key):
         return [self.a, self.e, self.i,
                 self.b, self.f, self.j,
