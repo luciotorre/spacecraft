@@ -1,5 +1,5 @@
 # -*- coding: utf-8 *-*
-from euclid import Matrix3
+from spacecraft.euclid import Matrix3
 from twisted.trial.unittest import TestCase
 
 from spacecraft import monitor
