@@ -31,7 +31,7 @@ class Scene:
 
     def lookat(self, x, y, width):
         self.matrix = euclid.Matrix3.new_identity()
-        self.scale(self.size[0] / width)
+        self.scale(self.size[0] / float(width))
         height = int(1. * self.size[1] * width / self.size[0])
         self.translate(width / 2 - x, height / 2 - y)
 
