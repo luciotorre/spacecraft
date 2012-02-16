@@ -145,6 +145,12 @@ class EngineForcePowerUp(PowerUp):
 class PlayerObject(ObjectBase):
     # the maximum possible force from the engines in newtons
     max_force = 100
+    # the maximum possible force from the engines, in newtons
+    max_force = 10
+    # the maximum instant turn per step, in radians
+    max_turn = 0.1
+    # number of steps that it takes for weapon to reload
+    reload_delay = 10
 
     def get_type(self):
         return "player"
@@ -157,3 +163,31 @@ class PlayerObject(ObjectBase):
         self.body = self.map.world.CreateDynamicBody(position=(x, y),
                                                 userData=self)
         self.body.CreateCircleFixture(radius=1, density=1)
+
+class Bullet(ObjectBase):
+    total_ttl = 100
+    def __init__(self, map, x, y, speedx=None, speedy=None):
+        self.map = map
+        self.map.register_client(self)
+        self.ttl = self.total_ttl
+        self.create_body(x, y, speedx, speedy)
+
+    def execute(self):
+        self.ttl -= 1
+        if self.ttl <= 0:
+            self.map.unregister_client(self)
+            self.map.world.DestroyBody(self.body)
+        
+    def get_type(self):
+        return "bullet"
+
+    def sendUpdate(self):
+        pass
+
+    def create_body(self, x, y, speedx=None, speedy=None):
+        if speedx is None:
+            speedx = random.random() * self.map.xsize
+        if speedy is None:
+            speedy = random.random() * self.map.ysize
+        self.body = self.map.world.CreateKinematicBody(position=(x, y),
+            linearVelocity=(speedx, speedy), userData=self)

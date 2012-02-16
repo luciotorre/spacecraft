@@ -131,9 +131,11 @@ class RadarSensor(object):
 
 
 class Player(Client):
-
     def __init__(self):
         self.throttle = 0
+        self.turn = 0
+        self.fire = 0
+        self.reloading = 0
         self.sensors = [GpsSensor(self), RadarSensor(self)]
 
     def register(self, map):
@@ -145,12 +147,27 @@ class Player(Client):
         self.object.destroy()
 
     def execute(self):
+        body = self.object.body
+        if self.turn:
+            body.angle = (body.angle + self.player.max_turn *
+                self.turn) % (2 * math.pi)
+            self.turn = 0
         if self.throttle != 0:
-            body = self.object.body
             force = euclid.Matrix3.new_rotate(body.angle) * \
-                    euclid.Vector2(1, 0) * self.player.max_force * self.throttle
+                    euclid.Vector2(1, 0) * self.player.max_force * \
+                    self.throttle
             body.ApplyForce(tuple(force), body.position)
             self.throttle = 0
+        if self.reloading:
+            self.reloading -= 1
+        else:
+            if self.fire:
+                x, y = body.position
+                speedx, speedy = euclid.Matrix3.new_rotate(body.angle) * \
+                    euclid.Vector2(15, 0) + body.linearVelocity
+                bullet = world.Bullet(self.map, x, y, speedx, speedy)
+                self.reloading = self.player.reload_delay
+                self.fire = 0
 
     def messageReceived(self, message):
         msg_type = message.get("type", None)
@@ -170,6 +187,16 @@ class Player(Client):
             log.msg("Bad throttle message:", message)
 
         self.throttle = max(0, min(1, value))
+
+    def do_turn(self, message):
+        value = message.get("value", 0)
+        if not isinstance(value, (int, float)):
+            log.msg("Bad turn message:", message)
+
+        self.turn = max(-1, min(1, value))
+
+    def do_fire(self, message):
+        self.fire = 1
 
     def sendUpdate(self):
         for sensor in self.sensors:
@@ -208,9 +235,9 @@ class Options(usage.Options):
             "The port number to listen on for monitors.", int],
         ["playerport", "p", 11106,
             "The port number to listen on for players.", int],
-        ["xsize", "x", 1024,
+        ["xsize", "x", 100,
             "The map x size.", int],
-        ["ysize", "y", 1024,
+        ["ysize", "y", 100,
             "The map y size.", int],
 
         ]
