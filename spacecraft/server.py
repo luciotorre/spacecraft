@@ -6,6 +6,7 @@ from twisted.internet.protocol import Factory
 from twisted.application import service, internet
 from twisted.python import usage, log
 from twisted.internet import reactor
+from twisted.web import static, server
 
 from spacecraft import world
 
@@ -159,6 +160,9 @@ class Options(usage.Options):
             "The port number to listen on for monitors.", int],
         ["playerport", "p", 11106,
             "The port number to listen on for players.", int],
+        ["httpport", "p", 11107,
+            "The port number to listen on for http requests.", int],
+
         ["xsize", "x", 100,
             "The map x size.", int],
         ["ysize", "y", 100,
@@ -182,5 +186,11 @@ def makeService(options):
         options['playerport'], PlayerFactory(map))
     player_service.setName("players")
     player_service.setServiceParent(root_service)
+
+    # add web service
+    root_resource = static.File("static/")
+    site = server.Site(root_resource)
+    web_service = internet.TCPServer(options['httpport'], site)
+    web_service.setServiceParent(root_service)
 
     return root_service
