@@ -142,8 +142,8 @@ class Monitor(Client):
         reactor.callLater(0, self.sendHello)
 
     def sendUpdate(self):
-        for body in self.map.world.bodies:
-            self.sendMessage(body.userData.get_full_position())
+        for obj in self.map.objects:
+            self.sendMessage(obj.get_full_position())
         self.sendMessage(type="time", step=self.map.step)
 
     def do_start_game(self, message):
