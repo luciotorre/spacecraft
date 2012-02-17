@@ -52,8 +52,11 @@ def check_system_deps():
         if not result:
             missing_bindeps.append(dep)
     for dep in pydeps:
-        result = local('%s -m %s || true' % (sys.executable, dep),
-            capture=True)
+        result = local('''%s -c "try:
+    import %s
+except ImportError:
+    print ':('
+"''' % (sys.executable, dep), capture=True)
         if result:
             missing_pydeps.append(dep)
     if missing_bindeps:

@@ -210,7 +210,7 @@ class PlayerObject(ObjectBase):
     # the maximum possible force from the engines in newtons
     max_force = 10
     # the maximum instant turn per step, in radians
-    max_turn = 0.1
+    max_turn = math.pi / 8
     # number of steps that it takes for weapon to reload
     reload_delay = 10
     # base health
@@ -220,10 +220,11 @@ class PlayerObject(ObjectBase):
         super(PlayerObject, self).__init__(map, x, y)
         self.sensors = [GpsSensor(self), RadarSensor(self)]
         self.map.register_object(self)
-        self.throttle = 0
+        self.throttle = 0  # Queued command
         self.turn = 0
         self.fire = 0
         self.reloading = 0
+        self.current_throttle = 0  # Current value
 
     def execute(self):
         body = self.body
@@ -231,6 +232,7 @@ class PlayerObject(ObjectBase):
             body.angle = (body.angle + self.max_turn *
                 self.turn) % (2 * math.pi)
             self.turn = 0
+        self.current_throttle = self.throttle
         if self.throttle != 0:
             force = euclid.Matrix3.new_rotate(body.angle) * \
                     euclid.Vector2(1, 0) * self.max_force * \
@@ -251,6 +253,11 @@ class PlayerObject(ObjectBase):
 
     def get_type(self):
         return "player"
+
+    def get_full_position(self):
+        result = super(PlayerObject, self).get_full_position()
+        result['throttle'] = self.current_throttle
+        return result
 
     def create_body(self, x=None, y=None):
         if x is None:
