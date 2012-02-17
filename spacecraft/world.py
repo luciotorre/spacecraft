@@ -211,7 +211,7 @@ class RadarSensor(object):
 
 class PlayerObject(ObjectBase):
     # the maximum possible force from the engines in newtons
-    max_force = 100
+    max_force = 10
     # the maximum instant turn per step, in radians
     max_turn = 0.1
     # number of steps that it takes for weapon to reload
@@ -224,16 +224,17 @@ class PlayerObject(ObjectBase):
         self.turn = 0
         self.fire = 0
         self.reloading = 0
+        self.map.register_object(self)
 
     def execute(self):
         body = self.body
         if self.turn:
-            body.angle = (body.angle + self.player.max_turn *
+            body.angle = (body.angle + self.max_turn *
                 self.turn) % (2 * math.pi)
             self.turn = 0
         if self.throttle != 0:
             force = euclid.Matrix3.new_rotate(body.angle) * \
-                    euclid.Vector2(1, 0) * self.player.max_force * \
+                    euclid.Vector2(1, 0) * self.max_force * \
                     self.throttle
             body.ApplyForce(tuple(force), body.position)
             self.throttle = 0
@@ -245,7 +246,7 @@ class PlayerObject(ObjectBase):
                 speedx, speedy = euclid.Matrix3.new_rotate(body.angle) * \
                     euclid.Vector2(15, 0) + body.linearVelocity
                 Bullet(self.map, x, y, speedx, speedy)
-                self.reloading = self.player.reload_delay
+                self.reloading = self.reload_delay
                 self.fire = 0
 
     def get_type(self):
