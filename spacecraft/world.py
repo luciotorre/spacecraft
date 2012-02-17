@@ -222,7 +222,6 @@ class PlayerObject(ObjectBase):
         self.turn = 0
         self.fire = 0
         self.reloading = 0
-        self.map.register_object(self)
 
     def execute(self):
         body = self.body
