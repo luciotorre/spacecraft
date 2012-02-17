@@ -43,19 +43,30 @@ def virtualenv_create():
 
 
 def check_system_deps():
-    system_deps = ['pygame']
-    missing_deps = []
-    for dep in system_deps:
+    missing_bindeps = []
+    missing_pydeps = []
+    bindeps = ['svn', 'gcc', 'g++', 'swig']
+    pydeps = ['pygame', 'virtualenv', 'setuptools']
+    for dep in bindeps:
+        result = local('which %s || true' % dep, capture=True)
+        if not result:
+            missing_bindeps.append(dep)
+    for dep in pydeps:
         result = local('''%s -c "try:
     import %s
 except ImportError:
     print ':('
 "''' % (sys.executable, dep), capture=True)
         if result:
-            missing_deps.append(dep)
-    if missing_deps:
-        print "Please install the following deps on your system:"
-        print '\n'.join(' * %s' % x for x in missing_deps)
+            missing_pydeps.append(dep)
+    if missing_bindeps:
+        print "\nPlease install the following binary deps on your system:"
+        print '\n'.join(' * %s' % x for x in missing_bindeps)
+    if missing_pydeps:
+        print "Please install the following Python deps on your system:"
+        print '\n'.join(' * %s' % x for x in missing_pydeps)
+    if missing_bindeps or missing_pydeps:
+        sys.exit(1)
 
 
 def install_requirements():

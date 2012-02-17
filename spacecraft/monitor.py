@@ -64,7 +64,8 @@ class Monitor(spacecraft.server.ClientBase):
         for msg in messages:
             kind = msg.get("type", None)
             if kind == "player":
-                color = (255, 0, 0)
+                throttle = msg.get('throttle', 0)
+                color = (int((1 - throttle) * 255), int(throttle * 255), 0)
                 position = self.scene.to_screen(*msg["position"])
                 end_pos = euclid.Matrix3.new_rotate(-msg["angle"]) * \
                     euclid.Point2(10, 0) + position

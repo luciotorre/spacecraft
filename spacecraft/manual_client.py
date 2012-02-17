@@ -1,7 +1,6 @@
 # -*- coding: utf-8 *-*
 import pygame
 
-from twisted.internet.protocol import ClientFactory
 from twisted.internet import reactor
 
 from spacecraft.monitor import Monitor, MonitorFactory
