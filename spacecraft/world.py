@@ -23,6 +23,7 @@ class Game(service.Service):
 
         self.world = b2.world(gravity=(0, 0), doSleep=True)
         self.clients = []
+        self.objects = []
         self.status = STATUS_WAITING
         self.winner = None
         self.update_loop = task.LoopingCall(self.doStep)
@@ -48,7 +49,7 @@ class Game(service.Service):
 
     def doStep(self):
         if self.status is STATUS_RUNNING:
-            for client in self.clients:
+            for objects in self.objects:
                 client.execute()
             self.step_world()
             self.step += 1
@@ -79,6 +80,12 @@ class Game(service.Service):
 
     def unregister_client(self, client):
         self.clients.remove(client)
+
+    def register_object(self, obj):
+        self.objects.append(obj)
+
+    def unregister_object(self, obj):
+        self.objects.remove(obj)
 
 
 class ObjectBase(object):
@@ -145,12 +152,40 @@ class EngineForcePowerUp(PowerUp):
 class PlayerObject(ObjectBase):
     # the maximum possible force from the engines in newtons
     max_force = 100
-    # the maximum possible force from the engines, in newtons
-    max_force = 10
     # the maximum instant turn per step, in radians
     max_turn = 0.1
     # number of steps that it takes for weapon to reload
     reload_delay = 10
+
+    def __init__(self, map, x=None, y=None):
+        super(PlayerObject, self).__init__(map, x, y)
+        self.throttle = 0
+        self.turn = 0
+        self.fire = 0
+        self.reloading = 0
+
+    def execute(self):
+        body = self.body
+        if self.turn:
+            body.angle = (body.angle + self.player.max_turn *
+                self.turn) % (2 * math.pi)
+            self.turn = 0
+        if self.throttle != 0:
+            force = euclid.Matrix3.new_rotate(body.angle) * \
+                    euclid.Vector2(1, 0) * self.player.max_force * \
+                    self.throttle
+            body.ApplyForce(tuple(force), body.position)
+            self.throttle = 0
+        if self.reloading:
+            self.reloading -= 1
+        else:
+            if self.fire:
+                x, y = body.position
+                speedx, speedy = euclid.Matrix3.new_rotate(body.angle) * \
+                    euclid.Vector2(15, 0) + body.linearVelocity
+                world.Bullet(self.map, x, y, speedx, speedy)
+                self.reloading = self.player.reload_delay
+                self.fire = 0
 
     def get_type(self):
         return "player"
@@ -164,25 +199,24 @@ class PlayerObject(ObjectBase):
                                                 userData=self)
         self.body.CreateCircleFixture(radius=1, density=1)
 
+
 class Bullet(ObjectBase):
     total_ttl = 100
+
     def __init__(self, map, x, y, speedx=None, speedy=None):
         self.map = map
-        self.map.register_client(self)
         self.ttl = self.total_ttl
         self.create_body(x, y, speedx, speedy)
+        self.map.register_object(self)
 
     def execute(self):
         self.ttl -= 1
         if self.ttl <= 0:
-            self.map.unregister_client(self)
+            self.map.unregister_object(self)
             self.map.world.DestroyBody(self.body)
-        
+
     def get_type(self):
         return "bullet"
-
-    def sendUpdate(self):
-        pass
 
     def create_body(self, x, y, speedx=None, speedy=None):
         if speedx is None:

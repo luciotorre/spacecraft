@@ -83,7 +83,7 @@ class TestGame(TestCase):
         player = server.Player()
         player.register(map)
         player.messageReceived(dict(type="throttle", value=0.5))
-        self.assertEquals(player.throttle, 0.5)
+        self.assertEquals(player.object.throttle, 0.5)
 
     def test_gps(self):
         map = world.Game(100, 100)
