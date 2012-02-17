@@ -29,12 +29,6 @@ class Scene:
         p.y = self.size[1] - p.y
         return int(p.x), int(p.y)
 
-    def lookat(self, x, y, width):
-        self.matrix = euclid.Matrix3.new_identity()
-        self.scale(self.size[0] / float(width))
-        height = int(1. * self.size[1] * width / self.size[0])
-        self.translate(width / 2 - x, height / 2 - y)
-
 
 class Monitor(spacecraft.server.ClientBase):
 
@@ -48,9 +42,8 @@ class Monitor(spacecraft.server.ClientBase):
             self.update(self.messages + [message])
             self.messages = []
         elif kind == "map_description":
-            x = message["xsize"]
-            y = message["ysize"]
-            self.scene.lookat(x / 2, y / 2, x)
+            # need to be smarter here, this works with current hardcoding
+            self.scene.scale(7)
         else:
             self.messages.append(message)
 
@@ -102,7 +95,7 @@ class MonitorFactory(ClientFactory):
 def main():
     pygame.init()
     pygame.font.init()
-    size = [700, 500]
+    size = [700, 700]
     screen = pygame.display.set_mode(size)
 
     reactor.connectTCP("localhost", 11105, MonitorFactory(screen))
