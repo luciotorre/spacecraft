@@ -62,9 +62,8 @@ class TestGame(TestCase):
         player = server.Player()
         player.register(map)
         self.assertEquals(len(map.world.bodies), 1)
-        prepr = player.object.get_repr()
-        self.assertTrue("x" in prepr)
-        self.assertTrue("y" in prepr)
+        prepr = player.object.get_full_position()
+        self.assertTrue("position" in prepr)
 
     def test_monitor(self):
         map = world.Game(100, 100)
@@ -76,7 +75,7 @@ class TestGame(TestCase):
         monitor.sendMessage = update_collector(result)
         monitor.sendUpdate()
         self.assertEquals(len(result), 2)
-        self.assertEquals(result[0], player.object.get_repr())
+        self.assertEquals(result[0], player.object.get_full_position())
 
     def test_throttle(self):
         map = world.Game(100, 100)
@@ -92,7 +91,7 @@ class TestGame(TestCase):
         result = []
         player.sendMessage = update_collector(result)
         player.sendUpdate()
-        result = [r for r in result if r["type"] == "gps"]
+        result = [r for r in result if "sensor" in r and r["sensor"] == "gps"]
 
         self.assertEquals(len(result), 1)
         self.assertEquals(result[0]["position"],
@@ -111,7 +110,7 @@ class TestGame(TestCase):
         result = []
         player.sendMessage = update_collector(result)
         player.sendUpdate()
-        result = [r for r in result if r["type"] == "radar"]
+        result = [r for r in result if "sensor" in r and r["sensor"] == "radar"]
 
         self.assertEquals(len(result), 1)
         self.assertEquals(result[0]["position"],

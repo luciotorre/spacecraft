@@ -17,7 +17,7 @@ def run_server(*args):
 
 def run_client():
     check_bootstrap()
-    local('PYTHONPATH=. ./virtualenv/bin/python spacecraft/client.py')
+    local('PYTHONPATH=. ./virtualenv/bin/python spacecraft/manual_client.py')
 
 
 def run_monitor():

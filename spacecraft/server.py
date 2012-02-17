@@ -77,6 +77,11 @@ class Client(ClientBase):
 
         meth(message)
 
+    def sendHello(self):
+        m = self.map.get_map_description()
+        m['type'] = "map_description"
+        self.sendMessage(m)
+
 
 class ClientFactory(Factory):
     def __init__(self, map):
@@ -95,6 +100,7 @@ class Player(Client):
     def register(self, map):
         Client.register(self, map)
         self.object = world.PlayerObject(self.map)
+        reactor.callLater(0, self.sendHello)
 
     def unregister(self):
         Client.unregister(self)
@@ -134,14 +140,9 @@ class Monitor(Client):
         Client.register(self, map)
         reactor.callLater(0, self.sendHello)
 
-    def sendHello(self):
-        m = self.map.get_map_description()
-        m['type'] = "map_description"
-        self.sendMessage(m)
-
     def sendUpdate(self):
         for body in self.map.world.bodies:
-            self.sendMessage(body.userData.get_repr())
+            self.sendMessage(body.userData.get_full_position())
         self.sendMessage(type="time", step=self.map.step)
 
     def do_start_game(self, message):
