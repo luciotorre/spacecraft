@@ -101,11 +101,6 @@ class ObjectBase(object):
     def create_body(self):
         raise NotImplementedError()
 
-    def get_repr(self):
-        return dict(
-            type=self.get_type(),
-            x=self.body.position[0], y=self.body.position[1])
-
     def get_type(self):
         return "object"
 
@@ -113,7 +108,9 @@ class ObjectBase(object):
         return id(self)
 
     def get_full_position(self):
-        return dict(position=tuple(self.body.position),
+        return dict(
+            type=self.get_type(),
+            position=tuple(self.body.position),
             angle=self.body.angle,
             velocity=tuple(self.body.linearVelocity))
 
@@ -159,9 +156,9 @@ class GpsSensor(object):
         self.player = player
 
     def getReadings(self):
-        return [dict(type="gps",
-            position=(self.player.body.position[0],
-                    self.player.body.position[1]))]
+        return [dict(sensor="gps",
+            **self.player.get_full_position())
+            ]
 
 
 class RayCastCallback(Box2D.b2RayCastCallback):
@@ -203,7 +200,7 @@ class RadarSensor(object):
             ray = rotate * ray
             self.player.map.world.RayCast(callback, point1, point2)
             if callback.fixture is not None:
-                yield dict(type="radar",
+                yield dict(sensor="radar",
                     object_type=callback.fixture.body.userData.get_type(),
                     id=callback.fixture.body.userData.get_id(),
                     **callback.fixture.body.userData.get_full_position())
@@ -220,6 +217,7 @@ class PlayerObject(ObjectBase):
     def __init__(self, map, x=None, y=None):
         super(PlayerObject, self).__init__(map, x, y)
         self.sensors = [GpsSensor(self), RadarSensor(self)]
+        self.map.register_object(self)
         self.throttle = 0
         self.turn = 0
         self.fire = 0
@@ -228,12 +226,12 @@ class PlayerObject(ObjectBase):
     def execute(self):
         body = self.body
         if self.turn:
-            body.angle = (body.angle + self.player.max_turn *
+            body.angle = (body.angle + self.max_turn *
                 self.turn) % (2 * math.pi)
             self.turn = 0
         if self.throttle != 0:
             force = euclid.Matrix3.new_rotate(body.angle) * \
-                    euclid.Vector2(1, 0) * self.player.max_force * \
+                    euclid.Vector2(1, 0) * self.max_force * \
                     self.throttle
             body.ApplyForce(tuple(force), body.position)
             self.throttle = 0
@@ -245,7 +243,7 @@ class PlayerObject(ObjectBase):
                 speedx, speedy = euclid.Matrix3.new_rotate(body.angle) * \
                     euclid.Vector2(15, 0) + body.linearVelocity
                 Bullet(self.map, x, y, speedx, speedy)
-                self.reloading = self.player.reload_delay
+                self.reloading = self.reload_delay
                 self.fire = 0
 
     def get_type(self):
@@ -259,6 +257,10 @@ class PlayerObject(ObjectBase):
         self.body = self.map.world.CreateDynamicBody(position=(x, y),
                                                 userData=self)
         self.body.CreateCircleFixture(radius=1, density=1)
+
+    def destroy(self):
+        super(PlayerObject, self).destroy()
+        self.map.unregister_object(self)
 
 
 class Bullet(ObjectBase):

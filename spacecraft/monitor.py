@@ -48,6 +48,10 @@ class Monitor(spacecraft.server.ClientBase):
             self.messages.append(message)
 
     def update(self, messages):
+        self.process_events()
+        self.render_screen(messages)
+
+    def process_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.transport.loseConnection()
@@ -55,16 +59,22 @@ class Monitor(spacecraft.server.ClientBase):
                 if event.key == pygame.K_SPACE:
                     self.command("start_game")
 
+    def render_screen(self, messages):
         self.screen.fill((0, 0, 0))
         for msg in messages:
+            print msg
             kind = msg.get("type", None)
             if kind == "player":
                 color = (255, 0, 0)
-                position = self.scene.to_screen(msg["x"], msg["y"])
+                position = self.scene.to_screen(*msg["position"])
+                end_pos = euclid.Matrix3.new_rotate(-msg["angle"]) * \
+                    euclid.Point2(10, 0) + position
+                print position
                 pygame.draw.circle(self.screen, color, position, 5)
+                pygame.draw.line(self.screen, color, position, end_pos, 2)
             elif kind == "bullet":
                 color = (255, 255, 255)
-                position = self.scene.to_screen(msg["x"], msg["y"])
+                position = self.scene.to_screen(*msg["position"])
                 pygame.draw.circle(self.screen, color, position, 2)
             elif kind == "time":
                 text = self.font.render("Step: %s" % (msg["step"],),
