@@ -1,8 +1,5 @@
 # -*- coding: utf-8 *-*
 import json
-import math
-
-import Box2D
 
 from twisted.protocols.basic import LineReceiver
 from twisted.internet.protocol import Factory
@@ -10,7 +7,7 @@ from twisted.application import service, internet
 from twisted.python import usage, log
 from twisted.internet import reactor
 
-from spacecraft import euclid, world
+from spacecraft import world
 
 
 class ClientBase(LineReceiver):
@@ -74,65 +71,7 @@ class ClientFactory(Factory):
         return protocol
 
 
-class GpsSensor(object):
-
-    def __init__(self, player):
-        self.player = player
-
-    def sendUpdate(self):
-        self.player.sendMessage(type="gps",
-            position=(self.player.object.body.position[0],
-                    self.player.object.body.position[1]))
-
-
-class RayCastCallback(Box2D.b2RayCastCallback):
-    """
-    This class captures the closest hit shape.
-    """
-    def __init__(self):
-        super(RayCastCallback, self).__init__()
-        self.fixture = None
-
-    # Called for each fixture found in the query. You control how the ray
-    # proceeds by returning a float that indicates the fractional length of
-    # the ray. By returning 0, you set the ray length to zero. By returning
-    # the current fraction, you proceed to find the closest point.
-    # By returning 1, you continue with the original ray clipping.
-    def ReportFixture(self, fixture, point, normal, fraction):
-        self.fixture = fixture
-        self.point = Box2D.b2Vec2(point)
-        self.normal = Box2D.b2Vec2(normal)
-        return fraction
-
-
-class RadarSensor(object):
-    steps = 360
-    distance = 500
-
-    def __init__(self, player):
-        self.player = player
-
-    def sendUpdate(self):
-        ray = euclid.Vector2(self.distance, 0)
-        rotate = euclid.Matrix3.new_rotate(2 * math.pi / self.steps)
-
-        for step in range(self.steps):
-            callback = RayCastCallback()
-
-            point1 = self.player.object.body.position
-            point2 = tuple(ray + self.player.object.body.position)
-            ray = rotate * ray
-            self.player.map.world.RayCast(callback, point1, point2)
-            if callback.fixture is not None:
-                self.player.sendMessage(type="radar",
-                    object_type=callback.fixture.body.userData.get_type(),
-                    id=callback.fixture.body.userData.get_id(),
-                    **callback.fixture.body.userData.get_full_position())
-
-
 class Player(Client):
-    def __init__(self):
-        self.sensors = [GpsSensor(self), RadarSensor(self)]
 
     def register(self, map):
         Client.register(self, map)
@@ -172,8 +111,9 @@ class Player(Client):
         self.object.fire = 1
 
     def sendUpdate(self):
-        for sensor in self.sensors:
-            sensor.sendUpdate()
+        for sensor in self.object.sensors:
+            for message in sensor.getReadings():
+                self.sendMessage(message)
         self.sendMessage(type="time", step=self.map.step)
 
 
