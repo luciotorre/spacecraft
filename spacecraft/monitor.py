@@ -2,6 +2,7 @@
 from twisted.internet.protocol import ClientFactory
 from twisted.internet import reactor
 
+import math
 import pygame
 import euclid
 
@@ -35,6 +36,9 @@ class Monitor(spacecraft.server.ClientBase):
     def __init__(self):
         self.messages = []
         self.font = pygame.font.Font(None, 18)
+        self.avatars = {}
+        # For now, just load our only avatar
+        self.avatars['Ship'] = pygame.image.load('./static/img/Ship.bmp')
 
     def messageReceived(self, message):
         kind = message.get("type", None)
@@ -64,13 +68,12 @@ class Monitor(spacecraft.server.ClientBase):
         for msg in messages:
             kind = msg.get("type", None)
             if kind == "player":
-                throttle = msg.get('throttle', 0)
-                color = (int((1 - throttle) * 255), int(throttle * 255), 0)
+                throttle = msg.get('throttle', 0)  # Add some particles!
                 position = self.scene.to_screen(*msg["position"])
-                end_pos = euclid.Matrix3.new_rotate(-msg["angle"]) * \
-                    euclid.Point2(10, 0) + position
-                pygame.draw.circle(self.screen, color, position, 5)
-                pygame.draw.line(self.screen, color, position, end_pos, 2)
+                img = self.avatars['Ship']
+                index = round(8 * msg['angle'] / math.pi) % 16
+                self.screen.blit(img, (position[0] - 12, position[1] - 12),
+                    area=pygame.Rect(index * 24, 0, 24, 24))
             elif kind == "bullet":
                 color = (255, 255, 255)
                 position = self.scene.to_screen(*msg["position"])
