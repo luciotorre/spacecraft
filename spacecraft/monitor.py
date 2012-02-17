@@ -62,14 +62,12 @@ class Monitor(spacecraft.server.ClientBase):
     def render_screen(self, messages):
         self.screen.fill((0, 0, 0))
         for msg in messages:
-            print msg
             kind = msg.get("type", None)
             if kind == "player":
                 color = (255, 0, 0)
                 position = self.scene.to_screen(*msg["position"])
                 end_pos = euclid.Matrix3.new_rotate(-msg["angle"]) * \
                     euclid.Point2(10, 0) + position
-                print position
                 pygame.draw.circle(self.screen, color, position, 5)
                 pygame.draw.line(self.screen, color, position, end_pos, 2)
             elif kind == "bullet":

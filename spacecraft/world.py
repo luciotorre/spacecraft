@@ -183,7 +183,7 @@ class RayCastCallback(Box2D.b2RayCastCallback):
 
 class RadarSensor(object):
     steps = 360
-    distance = 500
+    distance = 50
 
     def __init__(self, player):
         self.player = player
@@ -213,6 +213,8 @@ class PlayerObject(ObjectBase):
     max_turn = 0.1
     # number of steps that it takes for weapon to reload
     reload_delay = 10
+    # base health
+    health = 100
 
     def __init__(self, map, x=None, y=None):
         super(PlayerObject, self).__init__(map, x, y)
@@ -239,7 +241,8 @@ class PlayerObject(ObjectBase):
             self.reloading -= 1
         else:
             if self.fire:
-                x, y = body.position
+                x, y = euclid.Matrix3.new_rotate(body.angle) * \
+                    euclid.Vector2(3, 0) + body.position
                 speedx, speedy = euclid.Matrix3.new_rotate(body.angle) * \
                     euclid.Vector2(15, 0) + body.linearVelocity
                 Bullet(self.map, x, y, speedx, speedy)
@@ -262,9 +265,15 @@ class PlayerObject(ObjectBase):
         super(PlayerObject, self).destroy()
         self.map.unregister_object(self)
 
+    def take_damage(self, damage):
+        self.health -= damage
+        if self.health < 0:
+            self.destroy()
+
 
 class Bullet(ObjectBase):
     total_ttl = 100
+    damage = 10
 
     def __init__(self, map, x, y, speedx=None, speedy=None):
         self.map = map
@@ -286,5 +295,13 @@ class Bullet(ObjectBase):
             speedx = random.random() * self.map.xsize
         if speedy is None:
             speedy = random.random() * self.map.ysize
-        self.body = self.map.world.CreateKinematicBody(position=(x, y),
-            linearVelocity=(speedx, speedy), userData=self)
+        self.body = self.map.world.CreateDynamicBody(position=(x, y),
+                                                userData=self, bullet=True)
+        self.body.CreateCircleFixture(radius=1, density=1)
+        self.body.linearVelocity = speedx, speedy
+
+    def contact(self, other):
+        if isinstance(other, PlayerObject):
+            other.take_damage(self.damage)
+        self.destroy()
+        super(Bullet, self).contact(other)
