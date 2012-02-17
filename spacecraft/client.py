@@ -9,10 +9,6 @@ class Client(spacecraft.server.ClientBase):
     def connectionLost(self, reason):
         reactor.stop()
 
-    def command(self, msg_type, **kwargs):
-        kwargs["type"] = msg_type
-        self.sendMessage(kwargs)
-
 
 class SampleClient(Client):
 

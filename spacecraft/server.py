@@ -11,6 +11,7 @@ from spacecraft import world
 
 
 class ClientBase(LineReceiver):
+    """The base class for clients."""
 
     def lineReceived(self, line):
         try:
@@ -39,8 +40,14 @@ class ClientBase(LineReceiver):
     def messageReceived(self, message):
         raise NotImplementedError()
 
+    def command(self, msg_type, **kwargs):
+        kwargs["type"] = msg_type
+        self.sendMessage(kwargs)
+
 
 class Client(ClientBase):
+    """The server representation of a client."""
+
     def connectionLost(self, reason):
         log.msg("client connection lost:", (self.addr,))
         self.unregister()
@@ -57,6 +64,18 @@ class Client(ClientBase):
 
     def sendUpdate(self):
         self.sendMessage(type="time", step=self.map.step)
+
+    def messageReceived(self, message):
+        msg_type = message.get("type", None)
+        if msg_type is None:
+            return
+        meth = getattr(self, "do_" + msg_type, None)
+
+        if meth is None:
+            log.msg("Unknown message type:", msg_type)
+            return
+
+        meth(message)
 
 
 class ClientFactory(Factory):
@@ -80,18 +99,6 @@ class Player(Client):
     def unregister(self):
         Client.unregister(self)
         self.object.destroy()
-
-    def messageReceived(self, message):
-        msg_type = message.get("type", None)
-        if msg_type is None:
-            return
-        meth = getattr(self, "do_" + msg_type, None)
-
-        if meth is None:
-            log.msg("Unknown message type:", msg_type)
-            return
-
-        meth(message)
 
     def do_throttle(self, message):
         value = message.get("value", 0)
@@ -136,6 +143,9 @@ class Monitor(Client):
         for body in self.map.world.bodies:
             self.sendMessage(body.userData.get_repr())
         self.sendMessage(type="time", step=self.map.step)
+
+    def do_start_game(self, message):
+        self.map.start_game()
 
 
 class MonitorFactory(ClientFactory):

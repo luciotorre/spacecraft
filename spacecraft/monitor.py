@@ -51,6 +51,9 @@ class Monitor(spacecraft.server.ClientBase):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.transport.loseConnection()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    self.command("start_game")
 
         self.screen.fill((0, 0, 0))
         for msg in messages:
