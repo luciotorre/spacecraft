@@ -7,6 +7,7 @@ import pygame
 import euclid
 
 import spacecraft
+from spacecraft.sparks import SparkEngine
 
 
 class Scene:
@@ -40,6 +41,12 @@ class Monitor(spacecraft.server.ClientBase):
         # For now, just load our only avatar
         self.avatars['Ship'] = pygame.image.load('./static/img/Ship.bmp')
 
+    @property
+    def sparks(self):
+        if not hasattr(self, '_sparks'):
+            self._sparks = SparkEngine(self.screen)
+        return self._sparks
+
     def messageReceived(self, message):
         kind = message.get("type", None)
         if kind == "time":
@@ -68,12 +75,19 @@ class Monitor(spacecraft.server.ClientBase):
         for msg in messages:
             kind = msg.get("type", None)
             if kind == "player":
-                throttle = msg.get('throttle', 0)  # Add some particles!
                 position = self.scene.to_screen(*msg["position"])
+                angle = msg['angle']
+                # XXX achuni 2012-02-18: Why does 0.35 work?
+                velocity = msg['velocity'][0] * 0.35, -msg['velocity'][1] * 0.35
+                
                 img = self.avatars['Ship']
-                index = round(8 * msg['angle'] / math.pi) % 16
+                index = round(8 * angle / math.pi) % 16
                 self.screen.blit(img, (position[0] - 12, position[1] - 12),
                     area=pygame.Rect(index * 24, 0, 24, 24))
+                if msg.get('throttle', 0):
+                    delta = euclid.Matrix3.new_rotate(-angle) * \
+                        euclid.Vector2(-6, 0)
+                    self.sparks.add_burst(position + delta, angle, velocity, 3)
             elif kind == "bullet":
                 color = (255, 255, 255)
                 position = self.scene.to_screen(*msg["position"])
@@ -85,6 +99,7 @@ class Monitor(spacecraft.server.ClientBase):
                 where.bottom = self.screen.get_height()
                 where.left = 0
                 self.screen.blit(text, where)
+        self.sparks.step()
         pygame.display.flip()
 
     def connectionLost(self, reason):
