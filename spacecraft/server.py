@@ -79,9 +79,10 @@ class Client(ClientBase):
         meth(message)
 
     def sendHello(self):
-        m = self.map.get_map_description()
-        m['type'] = "map_description"
-        self.sendMessage(m)
+        if self.transport:
+            m = self.map.get_map_description()
+            m['type'] = "map_description"
+            self.sendMessage(m)
 
 
 class ClientFactory(Factory):

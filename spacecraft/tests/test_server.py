@@ -105,13 +105,13 @@ class TestGame(TestCase):
 
         player2 = server.Player()
         player2.register(map)
-        player2.object.body.position = (200, 100)
+        player2.object.body.position = (120, 100)
 
         result = []
         player.sendMessage = update_collector(result)
         player.sendUpdate()
         result = [r for r in result if "sensor" in r and r["sensor"] == "radar"]
 
-        self.assertEquals(len(result), 1)
+        self.assertNotEquals(len(result), 1)
         self.assertEquals(result[0]["position"],
             tuple(player2.object.body.position))
