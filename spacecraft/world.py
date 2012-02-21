@@ -17,7 +17,7 @@ STATUS_FINISHED = "finished"
 
 class Game(service.Service):
 
-    def __init__(self, xsize, ysize, frames=20):
+    def __init__(self, xsize, ysize, frames=20, start=False):
         self.xsize = xsize
         self.ysize = ysize
         self.timeStep = 1. / frames
@@ -28,7 +28,10 @@ class Game(service.Service):
         self.world = b2.world(gravity=(0, 0), doSleep=True)
         self.clients = []
         self.objects = []
-        self.status = STATUS_WAITING
+        if start:
+            self.status = STATUS_RUNNING
+        else:
+            self.status = STATUS_WAITING
         self.winner = None
         self.update_loop = task.LoopingCall(self.doStep)
 
@@ -208,7 +211,7 @@ class RadarSensor(object):
 
 class PlayerObject(ObjectBase):
     # the maximum possible force from the engines in newtons
-    max_force = 10
+    max_force = 100
     # the maximum instant turn per step, in radians
     max_turn = math.pi / 8
     # number of steps that it takes for weapon to reload

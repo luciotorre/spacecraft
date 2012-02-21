@@ -167,14 +167,17 @@ class Options(usage.Options):
             "The map x size.", int],
         ["ysize", "y", 100,
             "The map y size.", int],
-
+        ["start", "s", False,
+            "Put the game in running mode as soon as the server starts.""",
+            bool],
         ]
 
 
 def makeService(options):
     root_service = service.MultiService()
 
-    map = world.Game(options["xsize"], options["ysize"])
+    map = world.Game(options["xsize"], options["ysize"],
+        start=options["start"])
     map.setServiceParent(root_service)
 
     monitor_service = internet.TCPServer(
