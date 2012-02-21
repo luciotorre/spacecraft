@@ -294,8 +294,7 @@ class Bullet(ObjectBase):
     def execute(self):
         self.ttl -= 1
         if self.ttl <= 0:
-            self.map.unregister_object(self)
-            self.map.world.DestroyBody(self.body)
+            self.destroy()
 
     def get_type(self):
         return "bullet"
@@ -315,3 +314,7 @@ class Bullet(ObjectBase):
             other.take_damage(self.damage)
         self.destroy()
         super(Bullet, self).contact(other)
+
+    def destroy(self):
+        self.map.unregister_object(self)
+        super(Bullet, self).destroy()
