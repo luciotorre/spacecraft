@@ -164,6 +164,17 @@ class GpsSensor(object):
             ]
 
 
+class StatusSensor(object):
+
+    def __init__(self, player):
+        self.player = player
+
+    def getReadings(self):
+        return [dict(sensor="status",
+            health=self.player.health)
+            ]
+
+
 class RayCastCallback(Box2D.b2RayCastCallback):
     """
     This class captures the closest hit shape.
@@ -221,7 +232,7 @@ class PlayerObject(ObjectBase):
 
     def __init__(self, map, x=None, y=None):
         super(PlayerObject, self).__init__(map, x, y)
-        self.sensors = [GpsSensor(self), RadarSensor(self)]
+        self.sensors = [GpsSensor(self), RadarSensor(self), StatusSensor(self)]
         self.map.register_object(self)
         self.throttle = 0  # Queued command
         self.turn = 0
@@ -232,6 +243,8 @@ class PlayerObject(ObjectBase):
     def execute(self):
         body = self.body
         if self.turn:
+            # stop any other turning
+            self.body.angularVelocity = 0
             body.angle = (body.angle + self.max_turn *
                 self.turn) % (2 * math.pi)
             self.turn = 0
@@ -249,7 +262,7 @@ class PlayerObject(ObjectBase):
                 x, y = euclid.Matrix3.new_rotate(body.angle) * \
                     euclid.Vector2(3, 0) + body.position
                 speedx, speedy = euclid.Matrix3.new_rotate(body.angle) * \
-                    euclid.Vector2(15, 0) + body.linearVelocity
+                    euclid.Vector2(35, 0) + body.linearVelocity
                 Bullet(self.map, x, y, speedx, speedy)
                 self.reloading = self.reload_delay
                 self.fire = 0
@@ -272,13 +285,22 @@ class PlayerObject(ObjectBase):
         self.body.CreateCircleFixture(radius=1, density=1)
 
     def destroy(self):
-        super(PlayerObject, self).destroy()
-        self.map.unregister_object(self)
+        if self.body is not None:
+            self.map.notifyEvent(type="player_died", id=self.get_id())
+            super(PlayerObject, self).destroy()
+            self.map.unregister_object(self)
 
     def take_damage(self, damage):
         self.health -= damage
         if self.health < 0:
             self.destroy()
+
+    def getReadings(self):
+        if self.body is None:
+            return
+        for sensor in self.sensors:
+            for message in sensor.getReadings():
+                yield message
 
 
 class Bullet(ObjectBase):

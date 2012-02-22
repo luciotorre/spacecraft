@@ -1,5 +1,4 @@
 # -*- coding: utf-8 *-*
-from spacecraft.euclid import Matrix3
 from twisted.trial.unittest import TestCase
 
 from spacecraft import monitor
@@ -19,4 +18,3 @@ class TestScene(TestCase):
         scene = monitor.Scene(MockScreen())
         for (x, y) in [(0, 0), (500, 500), (0, 500), (123, 456)]:
             self.assertEqual((x, 600 - y), scene.to_screen(x, y))
-

@@ -79,7 +79,7 @@ class Monitor(spacecraft.server.ClientBase):
                 angle = msg['angle']
                 # XXX achuni 2012-02-18: Why does 0.35 work?
                 velocity = msg['velocity'][0] * 0.35, -msg['velocity'][1] * 0.35
-                
+
                 img = self.avatars['Ship']
                 index = round(8 * angle / math.pi) % 16
                 self.screen.blit(img, (position[0] - 12, position[1] - 12),

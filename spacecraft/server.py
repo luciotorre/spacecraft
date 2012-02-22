@@ -126,9 +126,8 @@ class Player(Client):
         self.object.fire = 1
 
     def sendUpdate(self):
-        for sensor in self.object.sensors:
-            for message in sensor.getReadings():
-                self.sendMessage(message)
+        for message in self.object.getReadings():
+            self.sendMessage(message)
         self.sendMessage(type="time", step=self.map.step)
 
 
