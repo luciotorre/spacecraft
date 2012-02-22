@@ -92,6 +92,10 @@ class Monitor(spacecraft.server.ClientBase):
                 color = (255, 255, 255)
                 position = self.scene.to_screen(*msg["position"])
                 pygame.draw.circle(self.screen, color, position, 2)
+            elif kind == "powerup":
+                color = (255, 0, 0)
+                position = self.scene.to_screen(*msg["position"])
+                pygame.draw.circle(self.screen, color, position, 2)
             elif kind == "time":
                 text = self.font.render("Step: %s" % (msg["step"],),
                     True, (255, 255, 255))

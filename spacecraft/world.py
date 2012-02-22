@@ -28,6 +28,8 @@ class Game(service.Service):
         self.world = b2.world(gravity=(0, 0), doSleep=True)
         self.clients = []
         self.objects = []
+        self.players = []
+
         if start:
             self.status = STATUS_RUNNING
         else:
@@ -94,6 +96,19 @@ class Game(service.Service):
     def unregister_object(self, obj):
         self.objects.remove(obj)
 
+    def register_player(self, obj):
+        self.register_object(obj)
+        self.players.append(obj)
+        self.notifyEvent(type="player_joined", id=obj.get_id())
+
+    def unregister_player(self, obj):
+        self.unregister_object(obj)
+        self.players.remove(obj)
+        self.notifyEvent(type="player_died", id=obj.get_id())
+        if len(self.players) == 1:
+            self.sendEvent(type="player_won", id=self.players[0].get_id())
+            self.finish_game(self.players[0])
+
 
 class ObjectBase(object):
 
@@ -101,7 +116,7 @@ class ObjectBase(object):
         self.map = map
         self.create_body(x, y)
 
-    def create_body(self):
+    def create_body(self, x, y):
         raise NotImplementedError()
 
     def get_type(self):
@@ -233,7 +248,7 @@ class PlayerObject(ObjectBase):
     def __init__(self, map, x=None, y=None):
         super(PlayerObject, self).__init__(map, x, y)
         self.sensors = [GpsSensor(self), RadarSensor(self), StatusSensor(self)]
-        self.map.register_object(self)
+        self.map.register_player(self)
         self.throttle = 0  # Queued command
         self.turn = 0
         self.fire = 0
@@ -286,9 +301,8 @@ class PlayerObject(ObjectBase):
 
     def destroy(self):
         if self.body is not None:
-            self.map.notifyEvent(type="player_died", id=self.get_id())
             super(PlayerObject, self).destroy()
-            self.map.unregister_object(self)
+            self.map.unregister_player(self)
 
     def take_damage(self, damage):
         self.health -= damage

@@ -8,7 +8,7 @@ from twisted.python import usage, log
 from twisted.internet import reactor
 from twisted.web import static, server
 
-from spacecraft import world
+from spacecraft import world, map
 
 
 class ClientBase(LineReceiver):
@@ -101,6 +101,9 @@ class Player(Client):
 
     def register(self, map):
         Client.register(self, map)
+        reactor.callLater(0, self._register)
+
+    def _register(self):
         self.object = world.PlayerObject(self.map)
         reactor.callLater(0, self.sendHello)
 
@@ -142,8 +145,8 @@ class Monitor(Client):
         reactor.callLater(0, self.sendHello)
 
     def sendUpdate(self):
-        for obj in self.map.objects:
-            self.sendMessage(obj.get_full_position())
+        for body in self.map.world.bodies:
+            self.sendMessage(body.userData.get_full_position())
         self.sendMessage(type="time", step=self.map.step)
 
     def do_start_game(self, message):
@@ -170,23 +173,30 @@ class Options(usage.Options):
         ["start", "s", False,
             "Put the game in running mode as soon as the server starts.""",
             bool],
+        ["map", "", "",
+            "Start with this map.", str],
+
         ]
 
 
 def makeService(options):
     root_service = service.MultiService()
 
-    map = world.Game(options["xsize"], options["ysize"],
+    game = world.Game(options["xsize"], options["ysize"],
         start=options["start"])
-    map.setServiceParent(root_service)
+    if options["map"]:
+        maploader = map.MapLoader(options["map"])
+        maploader.setup_map(game)
+
+    game.setServiceParent(root_service)
 
     monitor_service = internet.TCPServer(
-        options['monitorport'], MonitorFactory(map))
+        options['monitorport'], MonitorFactory(game))
     monitor_service.setName("monitors")
     monitor_service.setServiceParent(root_service)
 
     player_service = internet.TCPServer(
-        options['playerport'], PlayerFactory(map))
+        options['playerport'], PlayerFactory(game))
     player_service.setName("players")
     player_service.setServiceParent(root_service)
 
