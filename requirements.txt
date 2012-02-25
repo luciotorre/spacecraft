@@ -1,2 +1,4 @@
 svn+http://pybox2d.googlecode.com/svn/trunk/
 twisted==10.1.0
+coverage
+mock
