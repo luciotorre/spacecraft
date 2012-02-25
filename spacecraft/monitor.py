@@ -77,7 +77,7 @@ class Monitor(spacecraft.server.ClientBase):
             if kind == "player":
                 position = self.scene.to_screen(*msg["position"])
                 angle = msg['angle']
-                # XXX achuni 2012-02-18: Why does 0.35 work?
+                # XXX achuni 2012-02-18: Why does 0.35 work? (Does it?)
                 velocity = msg['velocity'][0] * 0.35, -msg['velocity'][1] * 0.35
 
                 img = self.avatars['Ship']
@@ -88,6 +88,10 @@ class Monitor(spacecraft.server.ClientBase):
                     delta = euclid.Matrix3.new_rotate(-angle) * \
                         euclid.Vector2(-6, 0)
                     self.sparks.add_burst(position + delta, angle, velocity, 3)
+                health = msg.get('health', 0)
+                if health:
+                    print health
+                    self.draw_health_bar(position, health)
             elif kind == "bullet":
                 color = (255, 255, 255)
                 position = self.scene.to_screen(*msg["position"])
@@ -109,6 +113,18 @@ class Monitor(spacecraft.server.ClientBase):
     def connectionLost(self, reason):
         reactor.stop()
 
+    def draw_health_bar(self, position, health, size=20):
+        x, y = position[0] - size / 2, position[1] + size / 2 + 4
+        if health > 50:
+            color = (0, 255, 0)
+        elif health > 20:
+            color = (255, 255, 0)
+        else:
+            color = (255, 0, 0)
+        rect = pygame.Rect(x, y, int(size * health / 100.), 4)
+        pygame.draw.rect(self.screen, color, rect, 0)
+        rect = pygame.Rect(x, y, size, 4)
+        pygame.draw.rect(self.screen, (200,200,200), rect,1)
 
 class MonitorFactory(ClientFactory):
     protocol = Monitor
