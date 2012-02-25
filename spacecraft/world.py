@@ -288,6 +288,7 @@ class PlayerObject(ObjectBase):
     def get_full_position(self):
         result = super(PlayerObject, self).get_full_position()
         result['throttle'] = self.current_throttle
+        result['health'] = self.health
         return result
 
     def create_body(self, x=None, y=None):
