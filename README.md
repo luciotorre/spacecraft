@@ -10,6 +10,11 @@ To run the tests
 
     $ fab test
 
+You can also generate a pretty html test coverage report using
+
+    $ fab coverage
+
+To view the report then check htmlcov/index.html
 
 To start a server
 -----------------

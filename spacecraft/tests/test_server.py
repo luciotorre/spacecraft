@@ -1,4 +1,5 @@
 # -*- coding: utf-8 *-*
+from mock import Mock
 from twisted.trial.unittest import TestCase
 from twisted.internet.endpoints import TCP4ClientEndpoint
 from twisted.internet.protocol import Factory, Protocol
@@ -57,20 +58,26 @@ class TestService(TestCase):
 
 class TestGame(TestCase):
 
-    def test_create_player(self):
-        map = world.Game(100, 100)
+    def setUp(self):
+        self.map = world.Game(100, 100)
+
+    def create_player(self):
         player = server.Player()
-        player.register(map)
-        self.assertEquals(len(map.world.bodies), 1)
+        player.transport = Mock()
+        player.register(self.map)
+        reactor.iterate()
+        return player
+
+    def test_create_player(self):
+        player = self.create_player()
+        self.assertEquals(len(self.map.world.bodies), 1)
         prepr = player.object.get_full_position()
         self.assertTrue("position" in prepr)
 
     def test_monitor(self):
-        map = world.Game(100, 100)
-        player = server.Player()
-        player.register(map)
+        player = self.create_player()
         monitor = server.Monitor()
-        monitor.register(map)
+        monitor.register(self.map)
         result = []
         monitor.sendMessage = update_collector(result)
         monitor.sendUpdate()
@@ -78,16 +85,22 @@ class TestGame(TestCase):
         self.assertEquals(result[0], player.object.get_full_position())
 
     def test_throttle(self):
-        map = world.Game(100, 100)
-        player = server.Player()
-        player.register(map)
+        player = self.create_player()
         player.messageReceived(dict(type="throttle", value=0.5))
         self.assertEquals(player.object.throttle, 0.5)
 
+    def test_turn(self):
+        player = self.create_player()
+        player.messageReceived(dict(type="turn", value=-0.5))
+        self.assertEquals(player.object.turn, -0.5)
+
+    def test_fire(self):
+        player = self.create_player()
+        player.messageReceived(dict(type="fire"))
+        self.assertEquals(player.object.fire, 1)
+
     def test_gps(self):
-        map = world.Game(100, 100)
-        player = server.Player()
-        player.register(map)
+        player = self.create_player()
         result = []
         player.sendMessage = update_collector(result)
         player.sendUpdate()
@@ -98,13 +111,10 @@ class TestGame(TestCase):
             tuple(player.object.body.position))
 
     def test_radar(self):
-        map = world.Game(100, 100)
-        player = server.Player()
-        player.register(map)
+        player = self.create_player()
         player.object.body.position = (100, 100)
 
-        player2 = server.Player()
-        player2.register(map)
+        player2 = self.create_player()
         player2.object.body.position = (120, 100)
 
         result = []

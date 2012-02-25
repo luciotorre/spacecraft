@@ -33,6 +33,14 @@ def test():
     check_bootstrap()
     local('./virtualenv/bin/trial spacecraft')
 
+def coverage():
+    cov = lambda args: local("virtualenv/bin/coverage " + args,
+                             capture=False)
+    local("rm -rf .coverage coverage/")
+    cov("run ./virtualenv/bin/trial spacecraft")
+    cov("combine")
+    cov("html -d htmlcov/ --include='spacecraft/*'")
+
 # -----------------------------------------------------------------
 # Tasks from here down aren't intended to be used directly
 
