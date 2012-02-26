@@ -89,7 +89,6 @@ class Monitor(spacecraft.server.ClientBase):
     def render_screen(self, messages):
         self.screen.fill((0, 0, 0))
         for msg in messages:
-            print msg
             kind = msg.get("type", None)
             if kind == "player":
                 position = self.scene.to_screen(*msg["position"])
