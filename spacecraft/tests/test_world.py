@@ -57,3 +57,14 @@ class TestPowerUp(TestCase):
         map.step_world()
         self.assertEquals(pl.max_force, old_force * pu.increase)
         self.assertFalse(pu.body in map.world.bodies)
+
+
+class TestProximitySensor(TestCase):
+
+    def test_report(self):
+        map = world.Game(100, 100)
+        pu = world.EngineForcePowerUp(map, 60, 60)
+        pl = world.PlayerObject(map, 50, 50)
+        sensor = world.ProximitySensor(pl)
+        result = list(sensor.getReadings())
+        self.assertEquals(pu.body.position, result[0]["position"])

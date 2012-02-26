@@ -196,6 +196,50 @@ class StatusSensor(object):
             ]
 
 
+def distance(p1, p2):
+    return abs(euclid.Point2(*p1) - euclid.Point2(*p2))
+
+
+class ProximitySensorCallback(Box2D.b2QueryCallback):
+    def __init__(self, center, radius):
+        self.result = []
+        self.center = center
+        self.radius = radius
+        Box2D.b2QueryCallback.__init__(self)
+
+    def ReportFixture(self, fixture):
+        body = fixture.body
+        if distance(self.center, body.position) < self.radius:
+            self.result.append(body.userData)
+        # Continue the query by returning True
+        return True
+
+
+class ProximitySensor(object):
+    radius = 30
+
+    def __init__(self, player):
+        self.player = player
+
+    def getReadings(self):
+        p = self.player.body.position
+        aabb = Box2D.b2AABB(
+            lowerBound=p - (self.radius, self.radius),
+            upperBound=p + (self.radius, self.radius))
+
+        # Query the world for overlapping shapes.
+        query = ProximitySensorCallback(p, self.radius)
+        self.player.map.world.QueryAABB(query, aabb)
+        for result in query.result:
+            if result is self.player:
+                continue
+
+            yield dict(sensor="proximity",
+                    object_type=result.get_type(),
+                    id=result.get_id(),
+                    **result.get_full_position())
+
+
 class RayCastCallback(Box2D.b2RayCastCallback):
     """
     This class captures the closest hit shape.
@@ -253,7 +297,8 @@ class PlayerObject(ObjectBase):
 
     def __init__(self, map, x=None, y=None):
         super(PlayerObject, self).__init__(map, x, y)
-        self.sensors = [GpsSensor(self), RadarSensor(self), StatusSensor(self)]
+        self.sensors = [GpsSensor(self), ProximitySensor(self),
+             StatusSensor(self)]
         self.map.register_player(self)
         self.throttle = 0  # Queued command
         self.turn = 0

@@ -112,6 +112,7 @@ class TestGame(TestCase):
 
     def test_radar(self):
         player = self.create_player()
+        player.object.sensors.append(world.RadarSensor(player.object))
         player.object.body.position = (100, 100)
 
         player2 = self.create_player()

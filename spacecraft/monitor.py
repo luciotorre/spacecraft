@@ -32,6 +32,21 @@ class Scene:
         return int(p.x), int(p.y)
 
 
+class Message(object):
+
+    def __init__(self):
+        self.message = None
+
+    def set(self, message):
+        self.message = message
+
+    def clear(self):
+        self.message = None
+
+    def render(self, screen):
+        pass
+
+
 class Monitor(spacecraft.server.ClientBase):
 
     def __init__(self):
@@ -40,6 +55,7 @@ class Monitor(spacecraft.server.ClientBase):
         self.avatars = {}
         # For now, just load our only avatar
         self.avatars['Ship'] = pygame.image.load('./static/img/Ship.bmp')
+        self.message = Message()
 
     @property
     def sparks(self):
@@ -73,6 +89,7 @@ class Monitor(spacecraft.server.ClientBase):
     def render_screen(self, messages):
         self.screen.fill((0, 0, 0))
         for msg in messages:
+            print msg
             kind = msg.get("type", None)
             if kind == "player":
                 position = self.scene.to_screen(*msg["position"])
