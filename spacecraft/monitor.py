@@ -90,7 +90,6 @@ class Monitor(spacecraft.server.ClientBase):
                     self.sparks.add_burst(position + delta, angle, velocity, 3)
                 health = msg.get('health', 0)
                 if health:
-                    print health
                     self.draw_health_bar(position, health)
             elif kind == "bullet":
                 color = (255, 255, 255)
@@ -124,7 +123,8 @@ class Monitor(spacecraft.server.ClientBase):
         rect = pygame.Rect(x, y, int(size * health / 100.), 4)
         pygame.draw.rect(self.screen, color, rect, 0)
         rect = pygame.Rect(x, y, size, 4)
-        pygame.draw.rect(self.screen, (200,200,200), rect,1)
+        pygame.draw.rect(self.screen, (200, 200, 200), rect, 1)
+
 
 class MonitorFactory(ClientFactory):
     protocol = Monitor

@@ -33,6 +33,7 @@ def test():
     check_bootstrap()
     local('./virtualenv/bin/trial spacecraft')
 
+
 def coverage():
     cov = lambda args: local("virtualenv/bin/coverage " + args,
                              capture=False)

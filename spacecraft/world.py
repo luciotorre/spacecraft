@@ -62,18 +62,21 @@ class Game(service.Service):
                 object.execute()
             self.step_world()
             self.step += 1
-
         for client in self.clients:
             client.sendUpdate()
 
     def step_world(self):
         self.world.Step(self.timeStep, self.vel_iters, self.pos_iters)
         self.world.ClearForces()
+        contacts = []
         for contact in self.world.contacts:
             if not contact.touching:
                 continue
             o1 = contact.fixtureA.body.userData
             o2 = contact.fixtureB.body.userData
+            contacts.append((o1, o2))
+
+        for o1, o2 in contacts:
             o1.contact(o2)
             o2.contact(o1)
         # wraparound
@@ -88,13 +91,15 @@ class Game(service.Service):
         self.clients.append(client)
 
     def unregister_client(self, client):
-        self.clients.remove(client)
+        if client in self.clients:
+            self.clients.remove(client)
 
     def register_object(self, obj):
         self.objects.append(obj)
 
     def unregister_object(self, obj):
-        self.objects.remove(obj)
+        if obj in self.objects:
+            self.objects.remove(obj)
 
     def register_player(self, obj):
         self.register_object(obj)
@@ -103,7 +108,8 @@ class Game(service.Service):
 
     def unregister_player(self, obj):
         self.unregister_object(obj)
-        self.players.remove(obj)
+        if obj in self.players:
+            self.players.remove(obj)
         self.notifyEvent(type="player_died", id=obj.get_id())
         if len(self.players) == 1:
             self.sendEvent(type="player_won", id=self.players[0].get_id())
