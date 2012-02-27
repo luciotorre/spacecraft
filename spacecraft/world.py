@@ -227,8 +227,9 @@ class StatusSensor(object):
         return [dict(
             type="sensor",
             sensor="status",
-            health=self.player.health)
-            ]
+            health=self.player.health,
+            throttle=self.player.current_throttle,
+            )]
 
 
 def distance(p1, p2):
@@ -374,12 +375,6 @@ class PlayerObject(ObjectBase):
 
     def get_type(self):
         return "player"
-
-    def get_full_position(self):
-        result = super(PlayerObject, self).get_full_position()
-        result['throttle'] = self.current_throttle
-        result['health'] = self.health
-        return result
 
     def create_body(self, x=None, y=None):
         if x is None:

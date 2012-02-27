@@ -82,7 +82,7 @@ class TestGame(TestCase):
         monitor.sendMessage = update_collector(result)
         monitor.sendUpdate()
         self.assertEquals(len(result), 2)
-        for p in ["angle", "health", "throttle", "velocity", "position"]:
+        for p in ["angle", "velocity", "position"]:
             self.assertEquals(result[0][p],
                 player.object.get_full_position()[p])
 
