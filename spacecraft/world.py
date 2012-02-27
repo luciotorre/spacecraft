@@ -1,6 +1,7 @@
 # -*- coding: utf-8 *-*
 import random
 import math
+import sys
 
 from Box2D import b2
 import Box2D
@@ -13,6 +14,36 @@ from spacecraft import euclid
 STATUS_WAITING = "waiting"
 STATUS_RUNNING = "running"
 STATUS_FINISHED = "finished"
+
+
+def trace(func):
+    def tracer(frame, event, arg):
+        #print event, dir(frame), dir(frame.f_code), frame.f_code.co_name
+        #print [ (x, getattr(frame, x)) for x in dir(frame)]
+        if "world.py" in frame.f_code.co_filename:
+            #print frame.f_code.co_filename + ":" + str(frame.f_lineno), \
+            #    frame.f_code.co_name, event
+            if event == "ddexception":
+                print arg[1]
+                print arg[0].message
+                for a in arg[0].args:
+                    print type(a)
+                for a in arg:
+                    print type(a), dir(a)
+
+        return tracef[0]
+
+    tracef = [tracer]
+
+    def inner(*args, **kwargs):
+        tracef[0] = tracer
+
+        sys.settrace(tracef[0])
+        try:
+            return func(*args, **kwargs)
+        finally:
+            tracef[0] = None
+    return inner
 
 
 class Game(service.Service):
@@ -112,7 +143,7 @@ class Game(service.Service):
             self.players.remove(obj)
         self.notifyEvent(type="player_died", id=obj.get_id())
         if len(self.players) == 1:
-            self.sendEvent(type="player_won", id=self.players[0].get_id())
+            self.notifyEvent(type="player_won", id=self.players[0].get_id())
             self.finish_game(self.players[0])
 
 

@@ -7,6 +7,7 @@ import pygame
 import euclid
 
 import spacecraft
+from spacecraft import world
 from spacecraft.sparks import SparkEngine
 
 
@@ -36,6 +37,7 @@ class Message(object):
 
     def __init__(self):
         self.message = None
+        self.font = pygame.font.Font(None, 36)
 
     def set(self, message):
         self.message = message
@@ -44,7 +46,15 @@ class Message(object):
         self.message = None
 
     def render(self, screen):
-        pass
+        if not self.message:
+            return
+
+        text = self.font.render(self.message,
+            True, (255, 255, 255))
+        where = text.get_rect()
+        where.centerx = screen.get_width() / 2
+        where.centery = screen.get_height() / 2
+        screen.blit(text, where)
 
 
 class Monitor(spacecraft.server.ClientBase):
@@ -90,6 +100,7 @@ class Monitor(spacecraft.server.ClientBase):
         self.screen.fill((0, 0, 0))
         for msg in messages:
             kind = msg.get("type", None)
+            print msg
             if kind == "player":
                 position = self.scene.to_screen(*msg["position"])
                 angle = msg['angle']
@@ -122,7 +133,15 @@ class Monitor(spacecraft.server.ClientBase):
                 where.bottom = self.screen.get_height()
                 where.left = 0
                 self.screen.blit(text, where)
+            elif kind == "game_status":
+                if msg["current"] == world.STATUS_RUNNING:
+                    self.message.clear()
+                elif msg["current"] == world.STATUS_WAITING:
+                    self.message.set("Waiting...")
+                elif msg["current"] == world.STATUS_FINISHED:
+                    self.message.set("Finished.")
         self.sparks.step()
+        self.message.render(self.screen)
         pygame.display.flip()
 
     def connectionLost(self, reason):
