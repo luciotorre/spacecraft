@@ -164,7 +164,6 @@ class ObjectBase(object):
 
     def get_full_position(self):
         return dict(
-            type=self.get_type(),
             position=tuple(self.body.position),
             angle=self.body.angle,
             velocity=tuple(self.body.linearVelocity))
@@ -211,7 +210,10 @@ class GpsSensor(object):
         self.player = player
 
     def getReadings(self):
-        return [dict(sensor="gps",
+        return [dict(
+            type="sensor",
+            sensor="gps",
+            object_type=self.player.get_type(),
             **self.player.get_full_position())
             ]
 
@@ -222,7 +224,9 @@ class StatusSensor(object):
         self.player = player
 
     def getReadings(self):
-        return [dict(sensor="status",
+        return [dict(
+            type="sensor",
+            sensor="status",
             health=self.player.health)
             ]
 
@@ -265,7 +269,9 @@ class ProximitySensor(object):
             if result is self.player:
                 continue
 
-            yield dict(sensor="proximity",
+            yield dict(
+                    type="sensor",
+                    sensor="proximity",
                     object_type=result.get_type(),
                     id=result.get_id(),
                     **result.get_full_position())
@@ -310,7 +316,9 @@ class RadarSensor(object):
             ray = rotate * ray
             self.player.map.world.RayCast(callback, point1, point2)
             if callback.fixture is not None:
-                yield dict(sensor="radar",
+                yield dict(
+                    type="sensor",
+                    sensor="radar",
                     object_type=callback.fixture.body.userData.get_type(),
                     id=callback.fixture.body.userData.get_id(),
                     **callback.fixture.body.userData.get_full_position())
@@ -318,7 +326,7 @@ class RadarSensor(object):
 
 class PlayerObject(ObjectBase):
     # the maximum possible force from the engines in newtons
-    max_force = 100
+    max_force = 300
     # the maximum instant turn per step, in radians
     max_turn = math.pi / 8
     # number of steps that it takes for weapon to reload
@@ -359,7 +367,7 @@ class PlayerObject(ObjectBase):
                 x, y = euclid.Matrix3.new_rotate(body.angle) * \
                     euclid.Vector2(3, 0) + body.position
                 speedx, speedy = euclid.Matrix3.new_rotate(body.angle) * \
-                    euclid.Vector2(35, 0) + body.linearVelocity
+                    euclid.Vector2(135, 0) + body.linearVelocity
                 Bullet(self.map, x, y, speedx, speedy)
                 self.reloading = self.reload_delay
                 self.fire = 0

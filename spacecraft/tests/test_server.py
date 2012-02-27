@@ -82,7 +82,9 @@ class TestGame(TestCase):
         monitor.sendMessage = update_collector(result)
         monitor.sendUpdate()
         self.assertEquals(len(result), 2)
-        self.assertEquals(result[0], player.object.get_full_position())
+        for p in ["angle", "health", "throttle", "velocity", "position"]:
+            self.assertEquals(result[0][p],
+                player.object.get_full_position()[p])
 
     def test_throttle(self):
         player = self.create_player()

@@ -146,7 +146,10 @@ class Monitor(Client):
 
     def sendUpdate(self):
         for body in self.map.world.bodies:
-            self.sendMessage(body.userData.get_full_position())
+            self.sendMessage(dict(
+                type="sensor",
+                object_type=body.userData.get_type(),
+                **body.userData.get_full_position()))
         self.sendMessage(type="time", step=self.map.step)
 
     def do_start_game(self, message):
