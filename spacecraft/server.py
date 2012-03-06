@@ -129,8 +129,7 @@ class Player(Client):
         self.object.fire = 1
 
     def sendUpdate(self):
-        for message in self.object.getReadings():
-            self.sendMessage(message)
+        self.sendMessage(type="sensor", **self.object.getReadings())
         self.sendMessage(type="time", step=self.map.step)
 
 
@@ -147,9 +146,9 @@ class Monitor(Client):
     def sendUpdate(self):
         for body in self.map.world.bodies:
             self.sendMessage(dict(
-                type="sensor",
+                type="monitor",
                 object_type=body.userData.get_type(),
-                **body.userData.get_full_position()))
+                **body.userData.get_monitor_data()))
         self.sendMessage(type="time", step=self.map.step)
 
     def do_start_game(self, message):

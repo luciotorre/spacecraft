@@ -106,10 +106,11 @@ class TestGame(TestCase):
         result = []
         player.sendMessage = update_collector(result)
         player.sendUpdate()
-        result = [r for r in result if "sensor" in r and r["sensor"] == "gps"]
-
+        result = [r for r in result if "type" in r and r["type"] == "sensor"]
         self.assertEquals(len(result), 1)
-        self.assertEquals(result[0]["position"],
+        result = result[0]['gps']
+
+        self.assertEquals(result["position"],
             tuple(player.object.body.position))
 
     def test_radar(self):
@@ -123,8 +124,10 @@ class TestGame(TestCase):
         result = []
         player.sendMessage = update_collector(result)
         player.sendUpdate()
-        result = [r for r in result if "sensor" in r and r["sensor"] == "radar"]
+        result = [r for r in result if "type" in r and r["type"] == "sensor"]
+        self.assertEqual(len(result), 1)
+        result = result[0]['radar']
 
-        self.assertNotEquals(len(result), 1)
+        self.assertEquals(len(result), 1)
         self.assertEquals(result[0]["position"],
             tuple(player2.object.body.position))

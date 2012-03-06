@@ -96,39 +96,46 @@ class Monitor(spacecraft.server.ClientBase):
                 if event.key == pygame.K_SPACE:
                     self.command("start_game")
 
+    def draw_avatar(self, position, angle, velocity, throttle=None,
+        health=None, avatar='Ship'):
+        position = self.scene.to_screen(*position)
+        # XXX achuni 2012-02-18: Why does 0.35 work? (Does it?)
+        velocity = velocity[0] * 0.35, -velocity[1] * 0.35
+        img = self.avatars[avatar]
+        index = round(8 * angle / math.pi) % 16
+        self.screen.blit(img, (position[0] - 12, position[1] - 12),
+            area=pygame.Rect(index * 24, 0, 24, 24))
+        if throttle:
+            delta = euclid.Matrix3.new_rotate(-angle) * \
+                euclid.Vector2(-6, 0)
+            self.sparks.add_burst(
+                position + delta, angle, velocity, 3)
+        if health:
+            self.draw_health_bar(position, health)
+
     def render_screen(self, messages):
         self.screen.fill((0, 0, 0))
         for msg in messages:
             kind = msg.get("type", None)
-            if kind == "sensor":
-                object_type = msg.get("object_type", None)
+            if kind == "monitor":
+                object_type = msg.get("object_type")
                 if object_type == "player":
-                    position = self.scene.to_screen(*msg["position"])
-                    angle = msg['angle']
-                    # XXX achuni 2012-02-18: Why does 0.35 work? (Does it?)
-                    velocity = msg['velocity'][0] * 0.35, \
-                              -msg['velocity'][1] * 0.35
-
-                    img = self.avatars['Ship']
-                    index = round(8 * angle / math.pi) % 16
-                    self.screen.blit(img, (position[0] - 12, position[1] - 12),
-                        area=pygame.Rect(index * 24, 0, 24, 24))
-                    if msg.get('throttle', 0):
-                        delta = euclid.Matrix3.new_rotate(-angle) * \
-                            euclid.Vector2(-6, 0)
-                        self.sparks.add_burst(
-                            position + delta, angle, velocity, 3)
-                    health = msg.get('health', 0)
-                    if health:
-                        self.draw_health_bar(position, health)
+                    msg.pop('object_type')
+                    msg.pop('type')
+                    self.draw_avatar(**msg)
                 elif object_type == "bullet":
                     color = (255, 255, 255)
-                    position = self.scene.to_screen(*msg["position"])
-                    pygame.draw.circle(self.screen, color, position, 2)
+                    pos = self.scene.to_screen(*msg["position"])
+                    pygame.draw.circle(self.screen, color, pos, 2)
                 elif object_type == "powerup":
                     color = (255, 0, 0)
-                    position = self.scene.to_screen(*msg["position"])
-                    pygame.draw.circle(self.screen, color, position, 2)
+                    pos = self.scene.to_screen(*msg["position"])
+                    pygame.draw.circle(self.screen, color, pos, 2)
+            elif kind == 'sensor':
+                data = msg['gps']
+                if 'status' in msg:
+                    data.update(msg['status'])
+                self.draw_avatar(**data)
             elif kind == "time":
                 text = self.font.render("Step: %s" % (msg["step"],),
                     True, (255, 255, 255))
