@@ -96,6 +96,9 @@ class Monitor(spacecraft.server.ClientBase):
                 if event.key == pygame.K_SPACE:
                     self.command("start_game")
 
+    def process_message(self, message):
+        pass
+
     def render_screen(self, messages):
         self.screen.fill((0, 0, 0))
         for msg in messages:
@@ -143,6 +146,7 @@ class Monitor(spacecraft.server.ClientBase):
                     self.message.set("Waiting...")
                 elif msg["current"] == world.STATUS_FINISHED:
                     self.message.set("Finished.")
+            self.process_message(msg)
         self.sparks.step()
         self.message.render(self.screen)
         pygame.display.flip()

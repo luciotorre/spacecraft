@@ -76,6 +76,20 @@ Proximity Sensor
 Actions
 -------
 
+You can send commands to the server by sending a message with this form:
+    dict(type=$command_name, **args)
+
+throttle
+^^^^^^^^
+
+The throttle commands applies a forward force in the direction of your
+current heading. The range can be between 0 and 1, and the resulting force
+will be that part of your current spaceship max possible thrust.
+
+Full Throttle Example:
+    {'type'='throttle', value=1}
+
+
 Using the monitor
 -----------------
 
