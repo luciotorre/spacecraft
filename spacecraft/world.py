@@ -163,10 +163,15 @@ class ObjectBase(object):
         return id(self)
 
     def get_full_position(self):
+        """This returns our full position."""
         return dict(
             position=tuple(self.body.position),
             angle=self.body.angle,
             velocity=tuple(self.body.linearVelocity))
+
+    def get_monitor_data(self):
+        """This returns all the data there is to return."""
+        return self.get_full_position()
 
     def destroy(self):
         if self.body is not None:
@@ -205,31 +210,26 @@ class EngineForcePowerUp(PowerUp):
 
 
 class GpsSensor(object):
+    name = 'gps'
 
     def __init__(self, player):
         self.player = player
 
     def getReadings(self):
-        return [dict(
-            type="sensor",
-            sensor="gps",
-            object_type=self.player.get_type(),
-            **self.player.get_full_position())
-            ]
+        return self.player.get_full_position()
 
 
 class StatusSensor(object):
+    name = 'status'
 
     def __init__(self, player):
         self.player = player
 
     def getReadings(self):
-        return [dict(
-            type="sensor",
-            sensor="status",
+        return dict(
             health=self.player.health,
-            throttle=self.player.current_throttle,
-            )]
+            throttle=self.player.current_throttle
+            )
 
 
 def distance(p1, p2):
@@ -252,6 +252,7 @@ class ProximitySensorCallback(Box2D.b2QueryCallback):
 
 
 class ProximitySensor(object):
+    name = 'proximity'
     radius = 30
 
     def __init__(self, player):
@@ -266,16 +267,12 @@ class ProximitySensor(object):
         # Query the world for overlapping shapes.
         query = ProximitySensorCallback(p, self.radius)
         self.player.map.world.QueryAABB(query, aabb)
-        for result in query.result:
-            if result is self.player:
-                continue
-
-            yield dict(
-                    type="sensor",
-                    sensor="proximity",
-                    object_type=result.get_type(),
-                    id=result.get_id(),
-                    **result.get_full_position())
+        return [dict(
+                object_type=result.get_type(),
+                id=result.get_id(),
+                **result.get_full_position())
+                for result in query.result
+                if result is not self.player]
 
 
 class RayCastCallback(Box2D.b2RayCastCallback):
@@ -299,6 +296,7 @@ class RayCastCallback(Box2D.b2RayCastCallback):
 
 
 class RadarSensor(object):
+    name = 'radar'
     steps = 360
     distance = 50
 
@@ -309,6 +307,7 @@ class RadarSensor(object):
         ray = euclid.Vector2(self.distance, 0)
         rotate = euclid.Matrix3.new_rotate(2 * math.pi / self.steps)
 
+        readings = {}
         for step in range(self.steps):
             callback = RayCastCallback()
 
@@ -317,12 +316,12 @@ class RadarSensor(object):
             ray = rotate * ray
             self.player.map.world.RayCast(callback, point1, point2)
             if callback.fixture is not None:
-                yield dict(
-                    type="sensor",
-                    sensor="radar",
+                object_id = callback.fixture.body.userData.get_id()
+                readings[object_id] = dict(
                     object_type=callback.fixture.body.userData.get_type(),
-                    id=callback.fixture.body.userData.get_id(),
+                    id=object_id,
                     **callback.fixture.body.userData.get_full_position())
+        return readings.values()
 
 
 class PlayerObject(ObjectBase):
@@ -345,6 +344,12 @@ class PlayerObject(ObjectBase):
         self.fire = 0
         self.reloading = 0
         self.current_throttle = 0  # Current value
+
+    def get_monitor_data(self):
+        result = self.get_full_position()
+        result['throttle'] = self.current_throttle
+        result['health'] = self.health
+        return result
 
     def execute(self):
         body = self.body
@@ -397,10 +402,8 @@ class PlayerObject(ObjectBase):
 
     def getReadings(self):
         if self.body is None:
-            return
-        for sensor in self.sensors:
-            for message in sensor.getReadings():
-                yield message
+            return {}
+        return dict((s.name, s.getReadings()) for s in self.sensors)
 
 
 class Bullet(ObjectBase):
