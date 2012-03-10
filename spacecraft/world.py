@@ -60,6 +60,7 @@ class Game(service.Service):
         self.clients = []
         self.objects = []
         self.players = []
+        self.terrain = []
 
         if start:
             self.status = STATUS_RUNNING
@@ -116,7 +117,8 @@ class Game(service.Service):
             body.position = (x % self.xsize), (y % self.ysize)
 
     def get_map_description(self):
-        return dict(xsize=self.xsize, ysize=self.ysize)
+        return dict(xsize=self.xsize, ysize=self.ysize,
+            terrain=[x.get_description() for x in self.terrain])
 
     def register_client(self, client):
         self.clients.append(client)
@@ -136,6 +138,9 @@ class Game(service.Service):
         self.register_object(obj)
         self.players.append(obj)
         self.notifyEvent(type="player_joined", id=obj.get_id())
+
+    def register_wall(self, obj):
+        self.terrain.append(obj)
 
     def unregister_player(self, obj):
         self.unregister_object(obj)
@@ -371,7 +376,7 @@ class PlayerObject(ObjectBase):
         else:
             if self.fire:
                 x, y = euclid.Matrix3.new_rotate(body.angle) * \
-                    euclid.Vector2(3, 0) + body.position
+                    euclid.Vector2(4, 0) + body.position
                 speedx, speedy = euclid.Matrix3.new_rotate(body.angle) * \
                     euclid.Vector2(135, 0) + body.linearVelocity
                 Bullet(self.map, x, y, speedx, speedy)
@@ -388,7 +393,7 @@ class PlayerObject(ObjectBase):
             y = random.random() * self.map.ysize
         self.body = self.map.world.CreateDynamicBody(position=(x, y),
                                                 userData=self)
-        self.body.CreateCircleFixture(radius=1, density=1)
+        self.body.CreateCircleFixture(radius=2, density=1)
 
     def destroy(self):
         if self.body is not None:

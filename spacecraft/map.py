@@ -11,21 +11,25 @@ class Wall(world.ObjectBase):
     def __init__(self, game, node):
         self.node = node
         super(Wall, self).__init__(game)
+        self.map.register_wall(self)
 
     def create_body(self, _x, _y):
-        x = float(self.node.attrib["x"])
-        y = float(self.node.attrib["y"])
-        w = float(self.node.attrib["width"])
-        h = float(self.node.attrib["height"])
+        self.x = float(self.node.attrib["x"])
+        self.y = float(self.node.attrib["y"])
+        self.width = float(self.node.attrib["width"])
+        self.height = float(self.node.attrib["height"])
         self.body = self.map.world.CreateStaticBody(
-            position=(x + w / 2, y + h / 2),
-            shapes=Box2D.b2PolygonShape(box=(w, h)),
+            position=(self.x + self.width / 2, self.y + self.height / 2),
+            shapes=Box2D.b2PolygonShape(box=(self.width / 2, self.height / 2)),
             userData=self,
             )
 
     def get_type(self):
         return "wall"
 
+    def get_description(self):
+        return {'type': 'wall', 'x': self.x, 'y': self.y, 'width': self.width,
+            'height': self.height}
 
 class MapLoader(object):
 

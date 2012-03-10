@@ -66,6 +66,7 @@ class Monitor(spacecraft.server.ClientBase):
         # For now, just load our only avatar
         self.avatars['Ship'] = pygame.image.load('./static/img/Ship.bmp')
         self.message = Message()
+        self.terrain = []
 
     @property
     def sparks(self):
@@ -80,6 +81,7 @@ class Monitor(spacecraft.server.ClientBase):
             self.messages = []
         elif kind == "map_description":
             # need to be smarter here, this works with current hardcoding
+            self.terrain = message.get('terrain', [])
             self.scene.scale(7)
         else:
             self.messages.append(message)
@@ -118,7 +120,15 @@ class Monitor(spacecraft.server.ClientBase):
 
     def render_screen(self, messages):
         self.screen.fill((0, 0, 0))
+        for wall in self.terrain:
+            x, y = self.scene.to_screen(wall['x'], wall['y'])
+            w = int(wall['width'] * 7) # Because 7 works
+            h = int(wall['height'] * 7)
+            y = y - h
+            rect = pygame.Rect(x, y, w, h)
+            pygame.draw.rect(self.screen, (100, 100, 100), rect, 0)
         for msg in messages:
+            print msg
             kind = msg.get("type", None)
             if kind == "monitor":
                 object_type = msg.get("object_type")
