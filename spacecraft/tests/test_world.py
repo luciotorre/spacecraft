@@ -48,7 +48,6 @@ class TestWorld(TestCase):
 
 
 class TestPowerUp(TestCase):
-
     def test_increase_force(self):
         map = world.Game(1024, 768)
         pu = world.EngineForcePowerUp(map, 100, 100)
@@ -57,6 +56,17 @@ class TestPowerUp(TestCase):
         map.step_world()
         self.assertEquals(pl.max_force, old_force * pu.increase)
         self.assertFalse(pu.body in map.world.bodies)
+
+
+class TestProximityMine(TestCase):
+    def test_proximity_mine(self):
+        map = world.Game(1024, 768)
+        mine = world.ProximityMine(map, 100, 100)
+        world.PlayerObject(map, 100, 100)
+        map.step_world()
+        self.assertEqual(mine.bullets + 1, len(map.objects))
+        shrapnel = [x for x in map.objects if isinstance(x, world.Shrapnel)]
+        self.assertEqual(mine.bullets, len(shrapnel))
 
 
 class TestProximitySensor(TestCase):

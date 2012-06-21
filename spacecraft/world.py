@@ -188,6 +188,7 @@ class ObjectBase(object):
 
 
 class PowerUp(ObjectBase):
+    radius = 1
 
     def get_type(self):
         return "powerup"
@@ -199,7 +200,7 @@ class PowerUp(ObjectBase):
             y = random.random() * self.map.ysize
         self.body = self.map.world.CreateDynamicBody(position=(x, y),
                                                 userData=self)
-        self.body.CreateCircleFixture(radius=1, density=1)
+        self.body.CreateCircleFixture(radius=self.radius, density=1)
 
     def contact(self, other):
         self.destroy()
@@ -212,6 +213,25 @@ class EngineForcePowerUp(PowerUp):
         if isinstance(other, PlayerObject):
             other.max_force *= self.increase
         super(EngineForcePowerUp, self).contact(other)
+
+
+class ProximityMine(PowerUp):
+    radius = 4
+    bullets = 50
+    min_speed = 50
+    max_speed = 150
+
+    def get_type(self):
+        return "mine"
+
+    def contact(self, other):
+        x, y = self.body.position
+        for n in range(self.bullets):
+            velocity = random.randint(self.min_speed, self.max_speed)
+            angle = euclid.Matrix3.new_rotate(2 * math.pi * random.random())
+            speedx, speedy = angle * euclid.Vector2(velocity, 0)
+            Shrapnel(self.map, x, y, speedx, speedy)
+        super(ProximityMine, self).contact(other)
 
 
 class GpsSensor(object):
@@ -448,3 +468,15 @@ class Bullet(ObjectBase):
     def destroy(self):
         self.map.unregister_object(self)
         super(Bullet, self).destroy()
+
+
+class Shrapnel(Bullet):
+    """Like a Bullet, but doesn't disappear in contact with another Shrapnel"""
+
+    def contact(self, other):
+        if isinstance(other, PlayerObject):
+            other.take_damage(self.damage)
+        if not isinstance(other, Shrapnel):
+            self.destroy()
+        super(Bullet, self).contact(other)
+
