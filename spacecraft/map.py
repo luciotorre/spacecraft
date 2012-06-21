@@ -39,6 +39,7 @@ class MapLoader(object):
         self.open_methods = {
             "{http://www.w3.org/2000/svg}rect": self.open_rect,
             "engine-force-powerup": self.open_engine_force_powerup,
+            "proximity-mine": self.proximity_mine,
             }
 
         self.close_methods = {
@@ -66,8 +67,13 @@ class MapLoader(object):
         Wall(game, node)
 
     def open_engine_force_powerup(self, node, game):
-        print node.attrib
         sodipodi = "{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}"
         world.EngineForcePowerUp(game,
+            float(node.attrib[sodipodi + "cx"]),
+            float(node.attrib[sodipodi + "cy"]))
+
+    def proximity_mine(self, node, game):
+        sodipodi = "{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}"
+        world.ProximityMine(game,
             float(node.attrib[sodipodi + "cx"]),
             float(node.attrib[sodipodi + "cy"]))

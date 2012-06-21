@@ -118,6 +118,21 @@ class Monitor(spacecraft.server.ClientBase):
         if health:
             self.draw_health_bar(position, health)
 
+    def draw_bullet(self, msg):
+        color = (255, 255, 255)
+        pos = self.scene.to_screen(*msg["position"])
+        pygame.draw.circle(self.screen, color, pos, 2)
+
+    def draw_powerup(self, msg):
+        color = (255, 0, 0)
+        pos = self.scene.to_screen(*msg["position"])
+        pygame.draw.circle(self.screen, color, pos, 2)
+
+    def draw_mine(self, msg):
+        color = (0, 0, 150)
+        pos = self.scene.to_screen(*msg["position"])
+        pygame.draw.circle(self.screen, color, pos, 3)
+
     def render_screen(self, messages):
         self.screen.fill((0, 0, 0))
         for wall in self.terrain:
@@ -128,27 +143,28 @@ class Monitor(spacecraft.server.ClientBase):
             rect = pygame.Rect(x, y, w, h)
             pygame.draw.rect(self.screen, (100, 100, 100), rect, 0)
         for msg in messages:
-            print msg
             kind = msg.get("type", None)
             if kind == "monitor":
+                # God-like view of the world.
                 object_type = msg.get("object_type")
                 if object_type == "player":
                     msg.pop('object_type')
                     msg.pop('type')
                     self.draw_avatar(**msg)
-                elif object_type == "bullet":
-                    color = (255, 255, 255)
-                    pos = self.scene.to_screen(*msg["position"])
-                    pygame.draw.circle(self.screen, color, pos, 2)
-                elif object_type == "powerup":
-                    color = (255, 0, 0)
-                    pos = self.scene.to_screen(*msg["position"])
-                    pygame.draw.circle(self.screen, color, pos, 2)
+                elif hasattr(self, 'draw_' + object_type):
+                    getattr(self, 'draw_' + object_type)(msg)
             elif kind == 'sensor':
-                data = msg['gps']
-                if 'status' in msg:
-                    data.update(msg['status'])
-                self.draw_avatar(**data)
+                # Avatar's view of the world.
+                if 'gps' in msg:
+                    data = msg['gps']
+                    if 'status' in msg:
+                        data.update(msg['status'])
+                    self.draw_avatar(**data)
+                for reading in msg.get('proximity', []):
+                    object_type = reading.get("object_type")
+                    if hasattr(self, 'draw_' + object_type):
+                        getattr(self, 'draw_' + object_type)(reading)
+                
             elif kind == "time":
                 text = self.font.render("Step: %s" % (msg["step"],),
                     True, (255, 255, 255))

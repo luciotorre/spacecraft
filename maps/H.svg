@@ -133,6 +133,17 @@
     <path
        sodipodi:type="arc"
        style="fill:#532942;fill-opacity:1;stroke:none"
+       id="path3016"
+       sodipodi:cx="14.600273"
+       sodipodi:cy="88.00444"
+       sodipodi:rx="1.2626907"
+       sodipodi:ry="1.8940361"
+       d="m 85.862964,88.00444 a 1.2626907,1.8940361 0 1 1 -2.525382,0 1.2626907,1.8940361 0 1 1 2.525382,0 z"
+       transform="translate(0,952.36218)"
+       game-tag="proximity-mine" />
+    <path
+       sodipodi:type="arc"
+       style="fill:#532942;fill-opacity:1;stroke:none"
        id="path3018"
        sodipodi:cx="79.549515"
        sodipodi:cy="17.167492"
