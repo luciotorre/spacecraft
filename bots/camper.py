@@ -21,6 +21,9 @@ class RandomClient(spacecraft.server.ClientBase):
 
     def messageReceived(self, message):
         if message.get('type') == 'sensor':
+            if not "gps" in messgage:
+                return
+
             self.pos = euclid.Point2(*message['gps']['position'])
             self.angle = message['gps']['angle']
 
