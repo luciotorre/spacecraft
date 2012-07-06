@@ -13,6 +13,10 @@ from spacecraft import world, map
 
 class ClientBase(LineReceiver):
     """The base class for clients."""
+    name = 'define a better name bitch. "name" attr in your client'
+
+    def sendName(self):
+        self.sendMessage({'type': 'name', 'value': self.name})
 
     def lineReceived(self, line):
         try:
@@ -20,6 +24,8 @@ class ClientBase(LineReceiver):
         except ValueError:
             log.msg("invalid line:", line)
         else:
+            if d.get('type', '') == 'name please':
+                self.sendName()
             self.messageReceived(d)
 
     def sendMessage(self, *args, **kwargs):
@@ -48,6 +54,7 @@ class ClientBase(LineReceiver):
 
 class Client(ClientBase):
     """The server representation of a client."""
+    name = 'unregistered name'
 
     def connectionLost(self, reason):
         log.msg("client connection lost:", (self.addr,))
@@ -131,6 +138,15 @@ class Player(Client):
     def sendUpdate(self):
         self.sendMessage(type="sensor", **self.object.getReadings())
         self.sendMessage(type="time", step=self.map.step)
+
+    def do_name(self, msg):
+        name = msg['value']
+        self.object.name = name
+
+    def sendHello(self):
+        Client.sendHello(self)
+        if self.transport:
+            self.sendMessage({'type': 'name please'})
 
 
 class PlayerFactory(ClientFactory):

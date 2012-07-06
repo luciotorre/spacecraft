@@ -374,6 +374,7 @@ class PlayerObject(ObjectBase):
         result = self.get_full_position()
         result['throttle'] = self.current_throttle
         result['health'] = self.health
+        result['name'] = self.name
         return result
 
     def execute(self):

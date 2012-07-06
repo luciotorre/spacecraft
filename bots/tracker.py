@@ -7,6 +7,7 @@ from spacecraft.client_helpers import relative_angle
 import spacecraft
 
 class RandomClient(spacecraft.server.ClientBase):
+    name = 'tracker'
     def messageReceived(self, message):
         if message.get('type') == 'sensor':
             self.command("throttle", value=1)

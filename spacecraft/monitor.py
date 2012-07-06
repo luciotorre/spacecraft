@@ -103,7 +103,7 @@ class Monitor(spacecraft.server.ClientBase):
         pass
 
     def draw_avatar(self, position, angle, velocity, throttle=None,
-        health=None, avatar='Ship', identifier=None):
+        health=None, avatar='Ship', name=None):
         position = self.scene.to_screen(*position)
         # XXX achuni 2012-02-18: Why does 0.35 work? (Does it?)
         velocity = velocity[0] * 0.35, -velocity[1] * 0.35
@@ -118,21 +118,21 @@ class Monitor(spacecraft.server.ClientBase):
                 position + delta, angle, velocity, 3)
         if health:
             self.draw_health_bar(position, health)
-        if identifier:
-            self.draw_identifier(position, identifier)
+        if name:
+            self.draw_name(position, name)
 
-    def draw_identifier(self, position, identifier):
+    def draw_name(self, position, name):
         font_size = 16
-        approx_size = int(len(identifier) * font_size * 0.35)
+        approx_size = int(len(name) * font_size * 0.35)
         x, y = position[0] - approx_size / 2, position[1] - (font_size + 10)
         pos = self.scene.to_screen(*position)
         msg = Message(font_size)
-        msg.set(identifier)
+        msg.set(name)
         msg.render(self.screen, (x, y))
 
     def draw_player(self, data):
         return self.draw_avatar(data['position'], data['angle'], data['velocity'],
-                                identifier=str(data['id']))
+                                name=str(data['name']))
 
     def draw_bullet(self, msg):
         color = (255, 255, 255)
@@ -175,7 +175,6 @@ class Monitor(spacecraft.server.ClientBase):
                     data = msg['gps']
                     if 'status' in msg:
                         data.update(msg['status'])
-                        print data
                     self.draw_avatar(**data)
                 for reading in msg.get('proximity', []):
                     object_type = reading.get("object_type")
