@@ -1,6 +1,6 @@
 from twisted.internet.protocol import ClientFactory
 from twisted.internet import reactor
-from random import random
+import random
 from spacecraft.client_helpers import relative_angle
 
 
@@ -14,6 +14,12 @@ class RandomClient(spacecraft.server.ClientBase):
     camp = euclid.Point2(4, 4)
     lookout = euclid.Point2(50, 50)
 
+    camp_positions = [
+        euclid.Point2(4, 4),
+        euclid.Point2(95, 95),
+        euclid.Point2(4, 95),
+        euclid.Point2(95, 4)
+        ]
     def look_to(self, target):
         turn = relative_angle(self.pos.x, self.pos.y,
             target.x, target.y, self.angle)
@@ -47,6 +53,10 @@ class RandomClient(spacecraft.server.ClientBase):
 
                 # if enemy nearby, aim and shoot
                 if enemy_found:
+                    dist_enemy = abs(self.pos - enemy_pos)
+                    if dist_enemy < 20:
+                        # if close, flee!
+                        self.camp = random.choice(self.camp_positions)
                     self.look_to(enemy_pos)
                     self.command("fire")
                 else:
