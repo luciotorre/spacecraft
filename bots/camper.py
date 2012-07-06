@@ -9,6 +9,8 @@ from spacecraft import euclid
 
 
 class RandomClient(spacecraft.server.ClientBase):
+
+    name = "camper"
     camp = euclid.Point2(4, 4)
     lookout = euclid.Point2(50, 50)
 
