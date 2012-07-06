@@ -118,6 +118,10 @@ class Monitor(spacecraft.server.ClientBase):
         if health:
             self.draw_health_bar(position, health)
 
+    def draw_player(self, *args):
+        data = args[0]
+        return self.draw_avatar(data['position'], data['angle'], data['velocity'])
+
     def draw_bullet(self, msg):
         color = (255, 255, 255)
         pos = self.scene.to_screen(*msg["position"])
@@ -164,7 +168,7 @@ class Monitor(spacecraft.server.ClientBase):
                     object_type = reading.get("object_type")
                     if hasattr(self, 'draw_' + object_type):
                         getattr(self, 'draw_' + object_type)(reading)
-                
+
             elif kind == "time":
                 text = self.font.render("Step: %s" % (msg["step"],),
                     True, (255, 255, 255))
