@@ -194,7 +194,7 @@ class Monitor(spacecraft.server.ClientBase):
                 elif msg["current"] == world.STATUS_WAITING:
                     self.message.set("Waiting...")
                 elif msg["current"] == world.STATUS_FINISHED:
-                    self.message.set("Finished.")
+                    self.message.set('%s wins' % msg["winner"])
             self.process_message(msg)
         self.sparks.step()
         self.message.render(self.screen)
