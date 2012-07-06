@@ -76,7 +76,7 @@ class Game(service.Service):
     def finish_game(self, winner):
         self.status = STATUS_FINISHED
         self.winner = winner
-        self.notifyEvent(type="game_status", current=self.status)
+        self.notifyEvent(type="game_status", current=self.status, winner=self.winner.name)
 
     def startService(self):
         self.update_loop.start(self.timeStep)
@@ -374,6 +374,7 @@ class PlayerObject(ObjectBase):
         result = self.get_full_position()
         result['throttle'] = self.current_throttle
         result['health'] = self.health
+        result['name'] = self.name
         return result
 
     def execute(self):

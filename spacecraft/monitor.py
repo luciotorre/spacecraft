@@ -35,9 +35,9 @@ class Scene:
 
 class Message(object):
 
-    def __init__(self):
+    def __init__(self, size=36):
         self.message = None
-        self.font = pygame.font.Font(None, 36)
+        self.font = pygame.font.Font(None, size)
 
     def set(self, message):
         self.message = message
@@ -45,15 +45,16 @@ class Message(object):
     def clear(self):
         self.message = None
 
-    def render(self, screen):
+    def render(self, screen, where=None):
         if not self.message:
             return
 
         text = self.font.render(self.message,
             True, (255, 255, 255))
-        where = text.get_rect()
-        where.centerx = screen.get_width() / 2
-        where.centery = screen.get_height() / 2
+        if where is None:
+            where = text.get_rect()
+            where.centerx = screen.get_width() / 2
+            where.centery = screen.get_height() / 2
         screen.blit(text, where)
 
 
@@ -102,14 +103,14 @@ class Monitor(spacecraft.server.ClientBase):
         pass
 
     def draw_avatar(self, position, angle, velocity, throttle=None,
-        health=None, avatar='Ship'):
+        health=None, avatar='Ship', name=None):
         position = self.scene.to_screen(*position)
         # XXX achuni 2012-02-18: Why does 0.35 work? (Does it?)
         velocity = velocity[0] * 0.35, -velocity[1] * 0.35
         img = self.avatars[avatar]
         index = round(8 * angle / math.pi) % 16
         self.screen.blit(img, (position[0] - 12, position[1] - 12),
-            area=pygame.Rect(index * 24, 0, 24, 24))
+                         area=pygame.Rect(index * 24, 0, 24, 24))
         if throttle:
             delta = euclid.Matrix3.new_rotate(-angle) * \
                 euclid.Vector2(-6, 0)
@@ -117,10 +118,21 @@ class Monitor(spacecraft.server.ClientBase):
                 position + delta, angle, velocity, 3)
         if health:
             self.draw_health_bar(position, health)
+        if name:
+            self.draw_name(position, name)
 
-    def draw_player(self, *args):
-        data = args[0]
-        return self.draw_avatar(data['position'], data['angle'], data['velocity'])
+    def draw_name(self, position, name):
+        font_size = 16
+        approx_size = int(len(name) * font_size * 0.35)
+        x, y = position[0] - approx_size / 2, position[1] - (font_size + 10)
+        pos = self.scene.to_screen(*position)
+        msg = Message(font_size)
+        msg.set(name)
+        msg.render(self.screen, (x, y))
+
+    def draw_player(self, data):
+        return self.draw_avatar(data['position'], data['angle'], data['velocity'],
+                                name=str(data['name']))
 
     def draw_bullet(self, msg):
         color = (255, 255, 255)
@@ -182,7 +194,7 @@ class Monitor(spacecraft.server.ClientBase):
                 elif msg["current"] == world.STATUS_WAITING:
                     self.message.set("Waiting...")
                 elif msg["current"] == world.STATUS_FINISHED:
-                    self.message.set("Finished.")
+                    self.message.set('%s wins' % msg["winner"])
             self.process_message(msg)
         self.sparks.step()
         self.message.render(self.screen)
@@ -225,6 +237,7 @@ def main():
     pygame.init()
     pygame.font.init()
     size = [700, 700]
+    pygame.display.set_caption('monitor')
     screen = pygame.display.set_mode(size)
 
     reactor.connectTCP("localhost", 11105, MonitorFactory(screen))

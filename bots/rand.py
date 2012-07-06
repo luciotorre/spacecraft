@@ -6,6 +6,7 @@ import spacecraft
 
 
 class RandomClient(spacecraft.server.ClientBase):
+    name = 'rand bot'
     def messageReceived(self, message):
         self.command("throttle", value=1)
         self.command("fire")
