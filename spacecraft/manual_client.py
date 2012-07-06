@@ -23,6 +23,10 @@ class ManualClient(Monitor):
         if keys[pygame.K_UP]:
             self.command("throttle", value=1)
 
+    def process_message(self, message):
+        # print message
+        pass
+
 
 class ManualClientFactory(MonitorFactory):
     protocol = ManualClient
