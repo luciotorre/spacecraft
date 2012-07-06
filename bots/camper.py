@@ -21,7 +21,7 @@ class RandomClient(spacecraft.server.ClientBase):
 
     def messageReceived(self, message):
         if message.get('type') == 'sensor':
-            if not "gps" in messgage:
+            if not "gps" in message:
                 return
 
             self.pos = euclid.Point2(*message['gps']['position'])
