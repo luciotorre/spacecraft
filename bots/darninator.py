@@ -12,15 +12,33 @@ from twisted.internet.protocol import ClientFactory
 # GOING: yendo a un punto (destx, desty)
 # CHASING: persiguiendo a un target target_id
 
-LOCATIONS = [
-#    complex(25,20),
-#    complex(25,90),
+LOCATIONS = [ # for basic map
     complex(10,10),
-    complex(10,290),
-    complex(290,10),
-    complex(290,290)
+    complex(10,90),
+    complex(90,10),
+    complex(90,90)
 ]
-NEAR_DISTANCE = 10 # To arrive to a checkpoint
+LOCATIONS = [ # for cross.svg
+       complex(10, 300-280),
+       complex(275, 300-280),
+       complex(270, 300-10),
+       complex(95, 300-10),
+       complex(270, 300-60),
+       complex(230, 300-60),
+       complex(230, 300-180),
+       complex(110, 300-180),
+       complex(150, 300-115),
+       complex(170, 300-55),
+       complex(52, 300-27),
+       complex(12, 300-12),
+       complex(34, 300-145),
+       complex(77, 300-205),
+       complex(145, 300-240),
+       complex(246, 300-265),
+       complex(94, 300-108),
+]
+
+NEAR_DISTANCE = 5 # To arrive to a checkpoint
 TURN_EPSILON = 0.03 # If cos(angle to destination) < this, don't bother to turn
 AHEAD = 0.6 # If cos(angle to target) < this, fire
 DEFENSE_AHEAD = 0.2 # If cos(angle from target) < this, dodge
@@ -59,12 +77,13 @@ class DarniClient(ClientBase):
         self.health = 100
         self.proximity = []
         self.gps = {
-            "position": [0, 0],
+            "position": [-1, -1],
             "velocity": [0, 0],
             "angle": 0,
         }
-        self.dest = complex(0, 0)
+        self.dest = complex(-1, -1)
         self.target_id = None
+        self.map = []
 
     ## Utility
 
@@ -79,6 +98,35 @@ class DarniClient(ClientBase):
     def shoot(self):
         if abs(self.velocity) < MAX_FIRE_SPEED: # To avoid hitting our oun bullets
             self.command("fire")
+
+    def line_of_sight(self,point):
+        """
+        Returns true iff there is line of sight to given point, considering
+        map walls. Assumes nonwrapping/closed map
+        """
+        from spacecraft import euclid
+        ray = euclid.LineSegment2(
+            euclid.Point2(self.location.real, self.location.imag),
+            euclid.Point2(point.real, point.imag),
+        )
+        #print "Checking", len(self.map), "walls;", F(self.location), F(point)
+        for w in self.map:
+            corners = [
+                euclid.Point2(w['x'], w['y']),
+                euclid.Point2(w['x']+w['width'], w['y']),
+                euclid.Point2(w['x'], w['y']+w['height']),
+                euclid.Point2(w['x']+w['width'], w['y']+w['height']),
+            ]
+            sides = [
+                euclid.LineSegment2(corners[0], corners[1]),
+                euclid.LineSegment2(corners[0], corners[2]),
+                euclid.LineSegment2(corners[3], corners[1]),
+                euclid.LineSegment2(corners[3], corners[2]),
+            ]
+            for s in sides:
+                if ray.intersect(s):
+                    return False
+        return True
 
     ## Access
     @property
@@ -97,9 +145,15 @@ class DarniClient(ClientBase):
     ## Strategy
 
     def patrol(self):
-        # Pick a destination, far away
-        while abs(self.location - self.dest) < NEAR_DISTANCE:
+        if self.location.real < 0: # Game hasn't started, do nothing
+            return
+        # Pick a destination, far away, but reachable
+        while abs(self.location - self.dest) < NEAR_DISTANCE or not self.line_of_sight(self.dest):
+            #print F(self.dest), "didn't work. Trying",
             self.dest = random.choice (LOCATIONS)
+            #print F(self.dest)
+            #if abs(self.location - self.dest) >= NEAR_DISTANCE and self.line_of_sight(self.dest):
+            #    print "Going ", F(self.location), "to", F(self.dest)
         # Find where I should aim at = Vector to target + compensation for velocity
         target = (self.dest-self.location) - VELOCITY_COMPENSATE*self.velocity
         self.aim(target)
@@ -120,7 +174,7 @@ class DarniClient(ClientBase):
             nrel_v = normalize(rel_v)
             nrel_p = normalize(rel_p)
             # if it's getting away, chase
-            if nrel_v.real*nrel_p.real + nrel_v.imag*nrel_p.imag > 0.1 and abs(rel_v)>4 and abs(rel_p) > 8:
+            if nrel_v.real*nrel_p.real + nrel_v.imag*nrel_p.imag > 0.1 and abs(rel_v)>4 and abs(rel_p) > 6:
                 self.command("throttle", value=ATTACK_THRUST)
         self.aim(location-self.location)
 
@@ -129,8 +183,9 @@ class DarniClient(ClientBase):
         for item in self.proximity:
             if item["object_type"] == "player":
                 self.target_id = item["id"]
-                self.attack(item)
-                break
+                if self.line_of_sight(complex(*item["position"])):
+                    self.attack(item)
+                    break
         else:
             # No enemy found, patrol for more
             self.target_id = None
@@ -140,6 +195,8 @@ class DarniClient(ClientBase):
         mtype = message["type"]
         if mtype == "time":
             self.time = message["step"]
+        elif mtype == "map_description":
+            self.map = message["terrain"]
         elif mtype == "sensor":
             self.health = message["status"]["health"]
             self.gps = message["gps"]
