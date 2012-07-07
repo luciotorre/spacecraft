@@ -135,7 +135,8 @@ class Player(Client):
         self.object.fire = 1
 
     def sendUpdate(self):
-        self.sendMessage(type="sensor", **self.object.getReadings())
+        if hasattr(self, 'object'):
+            self.sendMessage(type="sensor", **self.object.getReadings())
         self.sendMessage(type="time", step=self.map.step)
 
     def do_name(self, msg):
