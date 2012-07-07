@@ -5,3 +5,4 @@ twistd.pid
 virtualenv/
 .coverage
 htmlcov/
+*.swp

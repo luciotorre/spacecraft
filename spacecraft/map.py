@@ -68,9 +68,10 @@ class MapLoader(object):
 
     def open_engine_force_powerup(self, node, game):
         sodipodi = "{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}"
-        world.EngineForcePowerUp(game,
-            float(node.attrib[sodipodi + "cx"]),
-            float(node.attrib[sodipodi + "cy"]))
+        x = float(node.attrib[sodipodi + "cx"])
+        y = float(node.attrib[sodipodi + "cy"])
+        print "powerup", x, y
+        world.EngineForcePowerUp(game, x, y)
 
     def proximity_mine(self, node, game):
         sodipodi = "{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}"

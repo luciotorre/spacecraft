@@ -5,6 +5,7 @@ from twisted.internet import reactor
 import math
 import pygame
 import euclid
+from optparse import OptionParser
 
 import spacecraft
 from spacecraft import world
@@ -264,11 +265,21 @@ class MonitorFactory(ClientFactory):
     def clientConnectionFailed(self, connector, reason):
         reactor.stop()
 
+def parse_size(size):
+    try:
+        width, x, height = size.partition('x')
+        width = int(width)
+        height = int(height)
+    except ValueError:
+        raise ValueError('Invalid viewport size "%s"' % size)
+    assert 0 < height, "Height must be > 0"
+    assert 0 < width, "Width must be > 0"
+    return width, height
 
-def main():
+def main(size):
+    
     pygame.init()
     pygame.font.init()
-    size = [700, 700]
     pygame.display.set_caption('monitor')
     screen = pygame.display.set_mode(size)
 
@@ -276,6 +287,11 @@ def main():
 
 
 if __name__ == "__main__":
-    reactor.callWhenRunning(main)
+    parser = OptionParser()
+    parser.add_option("-s", "--size", dest="size",
+                      help="Set viewport size", metavar="WIDTHxHEIGHT")
+    (options, args) = parser.parse_args()
+    size = parse_size(options.size)
+    reactor.callWhenRunning(main, size)
     reactor.run()
     pygame.quit()
