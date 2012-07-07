@@ -93,6 +93,7 @@ class Monitor(spacecraft.server.ClientBase):
         self.terrain = []
         self.offset = [0, 0]
         self.next_offset = [0, 0]  # Offset to use for next frame
+        self.world_size = [0, 0]
         self.tracking = None
 
     @property
@@ -249,6 +250,9 @@ class Monitor(spacecraft.server.ClientBase):
         pygame.display.flip()
 
     def set_next_offset(self, msg):
+        if self.world_size==[0,0]:
+            # the world size has not arrived yet
+            return 
         x, y = self.scene.to_screen(*msg['position'])
         speedx, speedy = msg['velocity']
         w, h = self.scene.size
