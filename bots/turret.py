@@ -25,8 +25,7 @@ class TurretBotClient(ClientBase):
 
             if targets:
                 my_pos= Point2(*msg.gps.position)
-
-                # aim and shoot target
+                # rotate aiming to the target
                 t = targets[0]
                 t_pos = Point2(t.position[0] + t.velocity[0] * POS_PER_VEL,
                                t.position[1] + t.velocity[1] * POS_PER_VEL)
@@ -35,17 +34,13 @@ class TurretBotClient(ClientBase):
                                       t_pos.x, t_pos.y,
                                       msg.gps.angle)
 
-                self.command('turn', value=turn)
-                self.command('fire')
-
             else:
-                self.command('turn', value=0.1)
-                self.command('fire')
+                # rotate a tick to the right
+                turn = 0.1
 
-        else:
-            #print msg
-            pass
-
+            # do the rotation and shoot
+            self.command('turn', value=turn)
+            self.command('fire')
 
 
 def main():
