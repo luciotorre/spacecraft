@@ -56,7 +56,7 @@ def versus(bot1, bot2, *server_args):
         ['./virtualenv/bin/python',  bot1], env={'PYTHONPATH': '.'}))
     procs.append(subprocess.Popen(
         ['./virtualenv/bin/python',  bot2], env={'PYTHONPATH': '.'}))
-    local('PYTHONPATH=. ./virtualenv/bin/python spacecraft/monitor.py')
+    local('PYTHONPATH=. ./virtualenv/bin/python spacecraft/monitor.py --size 600x600')
     for proc in procs:
         proc.terminate()
 
