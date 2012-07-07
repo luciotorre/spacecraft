@@ -95,6 +95,7 @@ class Monitor(spacecraft.server.ClientBase):
         self.next_offset = [0, 0]  # Offset to use for next frame
         self.world_size = [0, 0]
         self.tracking = None
+        self.seen = []
 
     @property
     def sparks(self):
@@ -129,6 +130,10 @@ class Monitor(spacecraft.server.ClientBase):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
                     self.command("start_game")
+                elif event.key == pygame.K_LEFT:
+                    self.track_next()
+                elif event.key == pygame.K_RIGHT:
+                    self.track_previous()
 
     def process_message(self, message):
         pass
@@ -160,7 +165,8 @@ class Monitor(spacecraft.server.ClientBase):
 
     def draw_proximity_area(self, position):
         color = (36, 46, 56)
-        pygame.draw.circle(self.screen, color, position, ProximitySensor.radius, 1)
+        pygame.draw.circle(self.screen, color, position,
+                           world.ProximitySensor.radius, 1)
 
     def draw_name(self, position, name):
         font_size = 16
@@ -205,10 +211,13 @@ class Monitor(spacecraft.server.ClientBase):
                 # God-like view of the world.
                 object_type = msg.get("object_type")
                 if object_type == "player":
-                    if self.tracking is None:
-                        self.tracking = msg.get('name')
-                    if 'name' in msg and self.tracking == msg['name']:
-                        self.set_next_offset(msg)
+                    if 'name' in msg:
+                        if self.tracking is None:
+                            self.tracking = msg['name']
+                        if self.tracking == msg['name']:
+                            self.set_next_offset(msg)
+                        if not msg['name'] in self.seen:
+                            self.seen.append(msg['name'])
                     msg.pop('object_type')
                     msg.pop('type')
                     self.draw_avatar(**msg)
@@ -251,7 +260,6 @@ class Monitor(spacecraft.server.ClientBase):
         self.message.render(self.screen)
         for stat in self.result_stat_msgs:
             stat.render(self.screen)
-
         pygame.display.flip()
 
     def set_next_offset(self, msg):
@@ -281,6 +289,17 @@ class Monitor(spacecraft.server.ClientBase):
         rect = pygame.Rect(x, y, size, 4)
         pygame.draw.rect(self.screen, (200, 200, 200), rect, 1)
 
+    def track_previous(self):
+        if not self.tracking:
+            return
+        current = self.seen.index(self.tracking)
+        self.tracking = self.seen[(current - 1) % len(self.seen)]
+
+    def track_next(self):
+        if not self.tracking:
+            return
+        current = self.seen.index(self.tracking)
+        self.tracking = self.seen[(current + 1) % len(self.seen)]
 
 class MonitorFactory(ClientFactory):
     protocol = Monitor
