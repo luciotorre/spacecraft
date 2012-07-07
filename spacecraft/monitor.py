@@ -91,6 +91,9 @@ class Monitor(spacecraft.server.ClientBase):
         self.message = Message()
         self.result_stat_msgs = []
         self.terrain = []
+        self.offset = [0, 0]
+        self.next_offset = [0, 0]  # Offset to use for next frame
+        self.tracking = None
 
     @property
     def sparks(self):
@@ -105,8 +108,12 @@ class Monitor(spacecraft.server.ClientBase):
             self.messages = []
         elif kind == "map_description":
             # need to be smarter here, this works with current hardcoding
+            universe_scaling_factor = 7
             self.terrain = message.get('terrain', [])
-            self.scene.scale(7)
+            xlim = message.get('xsize') * universe_scaling_factor
+            ylim = message.get('ysize')  * universe_scaling_factor
+            self.world_size = xlim, ylim
+            self.scene.scale(universe_scaling_factor)
         else:
             self.messages.append(message)
 
@@ -125,9 +132,14 @@ class Monitor(spacecraft.server.ClientBase):
     def process_message(self, message):
         pass
 
+    def to_screen(self, position):
+        screenx, screeny = self.scene.to_screen(*position)
+        offsetx, offsety = self.offset
+        return screenx - offsetx, screeny - offsety
+
     def draw_avatar(self, position, angle, velocity, throttle=None,
         health=None, avatar='Ship', name=None):
-        position = self.scene.to_screen(*position)
+        position = self.to_screen(position)
         # XXX achuni 2012-02-18: Why does 0.35 work? (Does it?)
         velocity = velocity[0] * 0.35, -velocity[1] * 0.35
         img = self.avatars[avatar]
@@ -148,7 +160,6 @@ class Monitor(spacecraft.server.ClientBase):
         font_size = 16
         approx_size = int(len(name) * font_size * 0.35)
         x, y = position[0] - approx_size / 2, position[1] - (font_size + 10)
-        pos = self.scene.to_screen(*position)
         msg = Message(font_size)
         msg.set(name)
         msg.render(self.screen, (x, y))
@@ -159,23 +170,24 @@ class Monitor(spacecraft.server.ClientBase):
 
     def draw_bullet(self, msg):
         color = (255, 255, 255)
-        pos = self.scene.to_screen(*msg["position"])
+        pos = self.to_screen(msg["position"])
         pygame.draw.circle(self.screen, color, pos, 2)
 
     def draw_powerup(self, msg):
         color = (255, 0, 0)
-        pos = self.scene.to_screen(*msg["position"])
+        pos = self.to_screen(msg["position"])
         pygame.draw.circle(self.screen, color, pos, 2)
 
     def draw_mine(self, msg):
         color = (0, 0, 150)
-        pos = self.scene.to_screen(*msg["position"])
+        pos = self.to_screen(msg["position"])
         pygame.draw.circle(self.screen, color, pos, 3)
 
     def render_screen(self, messages):
         self.screen.fill((0, 0, 0))
+        self.offset = self.next_offset
         for wall in self.terrain:
-            x, y = self.scene.to_screen(wall['x'], wall['y'])
+            x, y = self.to_screen((wall['x'], wall['y']))
             w = int(wall['width'] * 7) # Because 7 works
             h = int(wall['height'] * 7)
             y = y - h
@@ -187,6 +199,10 @@ class Monitor(spacecraft.server.ClientBase):
                 # God-like view of the world.
                 object_type = msg.get("object_type")
                 if object_type == "player":
+                    if self.tracking is None:
+                        self.tracking = msg.get('name')
+                    if 'name' in msg and self.tracking == msg['name']:
+                        self.set_next_offset(msg)
                     msg.pop('object_type')
                     msg.pop('type')
                     self.draw_avatar(**msg)
@@ -220,7 +236,6 @@ class Monitor(spacecraft.server.ClientBase):
                     self.message.set('%s wins' % (msg["winner"]))
                     self.result_stat_msgs = []
                     for i, line in enumerate(msg['result_table']):
-                        font_size = 16
                         msg = MessageLine(20, i, offset=(0, 50))
                         msg.set(line)
                         self.result_stat_msgs.append(msg)
@@ -232,6 +247,14 @@ class Monitor(spacecraft.server.ClientBase):
             stat.render(self.screen)
 
         pygame.display.flip()
+
+    def set_next_offset(self, msg):
+        x, y = self.scene.to_screen(*msg['position'])
+        speedx, speedy = msg['velocity']
+        w, h = self.scene.size
+        x, y = int(x - w / 2 + speedx * 2), int(y - h / 2 - speedy * 2)
+        xlim, ylim = self.world_size
+        self.next_offset = min(xlim - w, max(0, x)), min(0, max(h - ylim, y))
 
     def connectionLost(self, reason):
         reactor.stop()

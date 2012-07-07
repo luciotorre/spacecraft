@@ -369,7 +369,7 @@ class PlayerObject(ObjectBase):
     # number of steps that it takes for weapon to reload
     reload_delay = 10
     # base health
-    health = 20
+    health = 100
 
     def __init__(self, map, x=None, y=None):
         super(PlayerObject, self).__init__(map, x, y)
