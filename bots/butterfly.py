@@ -10,7 +10,9 @@ import spacecraft
 
 class BFClient(spacecraft.server.ClientBase):
     name = 'Ali'
+    steps = 0
     def messageReceived(self, message):
+        self.steps += 1
         if message['type'] == 'sensor' and message.get('gps', False):
             gps = message['gps']
             x, y = message['gps']['position']
@@ -18,19 +20,9 @@ class BFClient(spacecraft.server.ClientBase):
             fire = 0
 
             # Butterfly
-            if far_from_center(gps):
-                if looking_center(gps):
-                    throttle = 1
-                else:
-                    throttle = 0
-                turn = relative_angle(x, y, 50, 50, angle)
-            else:
-                turn = 1
-                fire = 1
-                if random() < 0.3:
-                    throttle = 1
-                else:
-                    throttle = 0
+            # turn, throttle = self.butterfly(gps)
+
+            turn, throttle = self.navigate(gps)
 
             # Speed control
             if too_fast(gps) and not looking_center(gps):
@@ -56,6 +48,34 @@ class BFClient(spacecraft.server.ClientBase):
             self.command("turn", value=turn)
             if fire:
                 self.command("fire")
+
+    def butterfly(self, gps):
+        if far_from_center(gps):
+            if looking_center(gps):
+                throttle = 1
+            else:
+                throttle = 0
+                turn = relative_angle(x, y, 50, 50, angle)
+        else:
+            turn = 1
+            fire = 1
+            if random() < 0.3:
+                throttle = 1
+            else:
+                throttle = 0
+        return turn, throttle
+
+    def navigate(self, gps):
+        m = self.steps % 300
+        if m < 100:
+            turn = 1
+            throttle = 0
+            if random() < 0.5:
+                throttle = 1
+        else:
+            turn = 0
+            throttle = 1
+        return turn, throttle
 
 
 def looking_center(gps):
