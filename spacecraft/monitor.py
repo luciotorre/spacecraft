@@ -288,7 +288,7 @@ def main(size):
 
 if __name__ == "__main__":
     parser = OptionParser()
-    parser.add_option("-s", "--size", dest="size",
+    parser.add_option("-s", "--size", dest="size", default="700x700",
                       help="Set viewport size", metavar="WIDTHxHEIGHT")
     (options, args) = parser.parse_args()
     size = parse_size(options.size)
