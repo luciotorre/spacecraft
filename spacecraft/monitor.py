@@ -277,7 +277,7 @@ def parse_size(size):
     return width, height
 
 def main(size):
-    
+
     pygame.init()
     pygame.font.init()
     pygame.display.set_caption('monitor')

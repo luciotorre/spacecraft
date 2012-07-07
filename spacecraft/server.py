@@ -141,7 +141,8 @@ class Player(Client):
 
     def do_name(self, msg):
         name = msg['value']
-        self.object.name = name
+        self.object.name = name # so nobody complains
+        self.object.map.register_client_name(self.object, name)
 
     def sendHello(self):
         Client.sendHello(self)
