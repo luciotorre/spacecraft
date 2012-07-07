@@ -41,7 +41,7 @@ class BFClient(spacecraft.server.ClientBase):
 
             # Lock-on
             closer_player = get_closer_player(message)
-            if closer_player and closer_player['distance'] < 50:
+            if closer_player:
                 px, py = closer_player['position']
                 turn = relative_angle(x, y, px, py, angle)
                 if should_fire(closer_player, turn):
@@ -50,7 +50,6 @@ class BFClient(spacecraft.server.ClientBase):
                     fire = 0
 
             if point_defense(message):
-                print "PD"
                 fire = 1
 
             self.command("throttle", value=throttle)
@@ -104,7 +103,7 @@ def distance(p0, p1):
 
 
 def should_fire(player, relative_angle):
-    return player['distance'] < 30 and math.fabs(relative_angle) < 2
+    return player['distance'] < 25 and math.fabs(relative_angle) < 1
 
 
 def point_defense(message):
