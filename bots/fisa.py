@@ -34,6 +34,7 @@ class FisaBotClient(ClientBase):
             if targets:
                 my_pos= Point2(*msg.gps.position)
                 # rotate aiming to the target
+                # TODO pick closest
                 t = targets[0]
                 t_pos = Point2(t.position[0] + t.velocity[0] * POS_PER_VEL,
                                t.position[1] + t.velocity[1] * POS_PER_VEL)
@@ -47,25 +48,41 @@ class FisaBotClient(ClientBase):
                 self.command('fire')
 
             else:
-                # rotate a tick and move N times
+                # move N times, then rotate N times
                 if self.throttles_left:
-                    self.throttles_left -= 1
-                    self.command('throttle', value=SEARCH_THROTTLE)
+                    # must move
+                    if self.throttles_left < SEARCH_THROTTLES / 2 and \
+                       not is_moving(msg.gps.velocity):
+                           # but made half movements and still not velocity
+                           # so stop throttling and turn back
+                           self.throttles_left = 0
+                           self.turn = 1
+                           self.turns_left = 5
+                           self.command('turn', value=1)
+                    else:
+                        # keep moving
+                        self.throttles_left -= 1
+                        self.command('throttle', value=SEARCH_THROTTLE)
                 elif self.turns_left:
+                    # must rotate
                     self.turns_left -= 1
                     self.command('turn', value=self.turn)
                 else:
+                    # finish moving and rotating, start again
                     self.throttles_left = SEARCH_THROTTLES
                     self.turns_left = SEARCH_TURNS
                     self.turn = random.randint(-1, 1)
 
-                if abs(msg.gps.velocity[0]) + abs(msg.gps.velocity[1]) > 0.05:
+                if is_moving(msg.gps.velocity):
                     # shoot if not hitting a wall
                     self.command('fire')
 
 
         elif msg.type == 'map_description':
             self.terrain = msg.terrain
+
+def is_moving(velocity):
+    return abs(velocity[0]) + abs(velocity[1]) > 0.1
 
 
 def main():
