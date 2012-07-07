@@ -12,12 +12,12 @@ from twisted.internet.protocol import ClientFactory
 # GOING: yendo a un punto (destx, desty)
 # CHASING: persiguiendo a un target target_id
 
-LOCATIONS = [ # for basic map
-    complex(10,10),
-    complex(10,90),
-    complex(90,10),
-    complex(90,90)
-]
+#LOCATIONS = [ # for basic map
+#    complex(10,10),
+#    complex(10,90),
+#    complex(90,10),
+#    complex(90,90)
+#]
 LOCATIONS = [ # for cross.svg
        complex(10, 300-280),
        complex(275, 300-280),
@@ -178,6 +178,47 @@ class DarniClient(ClientBase):
                 self.command("throttle", value=ATTACK_THRUST)
         self.aim(location-self.location)
 
+    def backtrack_shots(self):
+        """
+        Check bullets that don't appear to have been originated from us.
+        calculate some interesection points and average them to extrapolate
+        enemy position. Aim there and fire.
+        """
+        from spacecraft.euclid import Point2, Vector2, Circle, Ray2
+        me = Circle(Point2(self.location.real, self.location.imag), 5.0)
+        enemy_shots = []
+        for item in self.proximity:
+            if item["object_type"] == "bullet":
+                ray = Ray2(
+                    Point2(*item["position"]),
+                    -Vector2(*item["velocity"])
+                )
+                if not ray.intersect(me): # assume enemy shot
+                    enemy_shots.append(ray)
+
+        if not enemy_shots: return False # no enemy shots seen
+        if len(enemy_shots)==1:
+            enemy = enemy_shots[0]
+            enemy_position = enemy.p + enemy.v*35 # Assume right outside sensor range
+            target = complex(enemy_position.x, enemy_position.y)
+        else:
+            pts = []
+            for i,v in enumerate(enemy_shots[:-1]):
+                estimate = v.intersect(enemy_shots[i+1])
+                if estimate:
+                    pts.append(estimate)
+            if not pts: return False # no data to estimate
+            x = sum(p.x for p in pts)/len(pts)
+            y = sum(p.y for p in pts)/len(pts)
+            target = complex(x, y)
+
+        self.aim(target-self.location)
+        self.command("throttle", value=ATTACK_THRUST)
+        self.shoot()
+        return True
+            
+
+
     def check_enemies(self):
         """Choose if attack, defend or patrol"""
         for item in self.proximity:
@@ -187,9 +228,10 @@ class DarniClient(ClientBase):
                     self.attack(item)
                     break
         else:
-            # No enemy found, patrol for more
-            self.target_id = None
-            self.patrol()
+            # No enemy found, backtrack shots, or patrol around
+            if not self.backtrack_shots():
+                self.target_id = None
+                self.patrol()
 
     def messageReceived(self, message):
         mtype = message["type"]
