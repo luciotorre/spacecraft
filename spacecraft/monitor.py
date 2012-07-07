@@ -93,6 +93,7 @@ class Monitor(spacecraft.server.ClientBase):
         self.terrain = []
         self.offset = [0, 0]
         self.next_offset = [0, 0]  # Offset to use for next frame
+        self.world_size = [0, 0]
         self.tracking = None
 
     @property
@@ -155,6 +156,11 @@ class Monitor(spacecraft.server.ClientBase):
             self.draw_health_bar(position, health)
         if name:
             self.draw_name(position, name)
+        self.draw_proximity_area(position)
+
+    def draw_proximity_area(self, position):
+        color = (36, 46, 56)
+        pygame.draw.circle(self.screen, color, position, ProximitySensor.radius, 1)
 
     def draw_name(self, position, name):
         font_size = 16
@@ -249,6 +255,9 @@ class Monitor(spacecraft.server.ClientBase):
         pygame.display.flip()
 
     def set_next_offset(self, msg):
+        if self.world_size==[0,0]:
+            # the world size has not arrived yet
+            return 
         x, y = self.scene.to_screen(*msg['position'])
         speedx, speedy = msg['velocity']
         w, h = self.scene.size
