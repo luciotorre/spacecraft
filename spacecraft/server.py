@@ -105,7 +105,6 @@ class ClientFactory(Factory):
 
 
 class Player(Client):
-
     def register(self, map):
         Client.register(self, map)
         reactor.callLater(0, self._register)
