@@ -155,6 +155,11 @@ class Monitor(spacecraft.server.ClientBase):
             self.draw_health_bar(position, health)
         if name:
             self.draw_name(position, name)
+        self.draw_proximity_area(position)
+
+    def draw_proximity_area(self, position):
+        color = (36, 46, 56)
+        pygame.draw.circle(self.screen, color, position, ProximitySensor.radius, 1)
 
     def draw_name(self, position, name):
         font_size = 16
