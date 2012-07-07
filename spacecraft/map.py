@@ -19,7 +19,6 @@ class Wall(world.ObjectBase):
         self.y = float(self.node.attrib["y"])
         self.x += self.transform["translate"][0]
         self.y += self.transform["translate"][1]
-        print "wall", self.transform
         self.width = float(self.node.attrib["width"])
         self.height = float(self.node.attrib["height"])
         self.body = self.map.world.CreateStaticBody(
@@ -93,7 +92,6 @@ class MapLoader(object):
         sodipodi = "{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}"
         x = float(node.attrib[sodipodi + "cx"]) + transform['translate'][0]
         y = float(node.attrib[sodipodi + "cy"]) + transform['translate'][1]
-        print "powerup", x, y
         world.EngineForcePowerUp(game, x, y)
 
     def proximity_mine(self, node, game, transform):
