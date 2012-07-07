@@ -12,6 +12,9 @@ from spacecraft import world
 from spacecraft.sparks import SparkEngine
 
 
+UNIVERSE_SCALING_FACTOR = 7
+
+
 class Scene:
 
     def __init__(self, screen):
@@ -108,12 +111,11 @@ class Monitor(spacecraft.server.ClientBase):
             self.messages = []
         elif kind == "map_description":
             # need to be smarter here, this works with current hardcoding
-            universe_scaling_factor = 7
             self.terrain = message.get('terrain', [])
-            xlim = message.get('xsize') * universe_scaling_factor
-            ylim = message.get('ysize')  * universe_scaling_factor
+            xlim = message.get('xsize') * UNIVERSE_SCALING_FACTOR
+            ylim = message.get('ysize')  * UNIVERSE_SCALING_FACTOR
             self.world_size = xlim, ylim
-            self.scene.scale(universe_scaling_factor)
+            self.scene.scale(UNIVERSE_SCALING_FACTOR)
         else:
             self.messages.append(message)
 
@@ -159,7 +161,8 @@ class Monitor(spacecraft.server.ClientBase):
 
     def draw_proximity_area(self, position):
         color = (36, 46, 56)
-        pygame.draw.circle(self.screen, color, position, ProximitySensor.radius, 1)
+        pygame.draw.circle(self.screen, color, position,
+                           UNIVERSE_SCALING_FACTOR * world.ProximitySensor.radius, 1)
 
     def draw_name(self, position, name):
         font_size = 16
