@@ -16,9 +16,9 @@ LOCATIONS = [
 #    complex(25,20),
 #    complex(25,90),
     complex(10,10),
-    complex(10,90),
-    complex(90,10),
-    complex(90,90)
+    complex(10,290),
+    complex(290,10),
+    complex(290,290)
 ]
 NEAR_DISTANCE = 10 # To arrive to a checkpoint
 TURN_EPSILON = 0.03 # If cos(angle to destination) < this, don't bother to turn
