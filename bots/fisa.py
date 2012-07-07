@@ -32,18 +32,20 @@ class FisaBotClient(ClientBase):
                        if obj.object_type == 'player']
 
             if targets:
+                # shoot closest target
                 my_pos= Point2(*msg.gps.position)
-                # rotate aiming to the target
-                # TODO pick closest
-                t = targets[0]
-                t_pos = Point2(t.position[0] + t.velocity[0] * POS_PER_VEL,
-                               t.position[1] + t.velocity[1] * POS_PER_VEL)
 
+                # pick closest
+                t = sorted([(my_pos.distance(Point2(*t.position)), t)
+                            for t in targets])[0][1]
+                # where to aim
+                aim_at = Point2(t.position[0] + t.velocity[0] * POS_PER_VEL,
+                                t.position[1] + t.velocity[1] * POS_PER_VEL)
                 turn = relative_angle(my_pos.x, my_pos.y,
-                                      t_pos.x, t_pos.y,
+                                      aim_at.x, aim_at.y,
                                       msg.gps.angle)
 
-                # do the rotation and shoot
+                # aim and shoot
                 self.command('turn', value=turn)
                 self.command('fire')
 
@@ -80,6 +82,7 @@ class FisaBotClient(ClientBase):
 
         elif msg.type == 'map_description':
             self.terrain = msg.terrain
+
 
 def is_moving(velocity):
     return abs(velocity[0]) + abs(velocity[1]) > 0.1
