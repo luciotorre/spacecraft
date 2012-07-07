@@ -396,11 +396,13 @@ class PlayerObject(ObjectBase):
         self.hits = 0
         self.frags = 0
 
-    def compute_hit(self):
-        self.hits += 1
+    def compute_hit(self, victim):
+        if self is not victim:
+            self.hits += 1
 
-    def compute_frag(self):
-        self.frags += 1
+    def compute_frag(self, victim):
+        if self is not victim:
+            self.frags += 1
 
     def get_monitor_data(self):
         result = self.get_full_position()
@@ -503,8 +505,8 @@ class Bullet(ObjectBase):
             shooter = getattr(self, 'shooter', None)
             callbacks = {}
             if shooter:
-                callbacks['callback_hit'] = shooter.compute_hit
-                callbacks['callback_frag'] = shooter.compute_frag
+                callbacks['callback_hit'] = lambda: shooter.compute_hit(other)
+                callbacks['callback_frag'] = lambda: shooter.compute_frag(other)
             other.take_damage(self.damage, **callbacks)
         self.destroy()
         super(Bullet, self).contact(other)
