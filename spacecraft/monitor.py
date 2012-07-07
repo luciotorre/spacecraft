@@ -46,6 +46,12 @@ class Message(object):
     def clear(self):
         self.message = None
 
+    def _construct_location(self, text, screen):
+        where = text.get_rect()
+        where.centerx = screen.get_width() / 2
+        where.centery = screen.get_height() / 4
+        return where
+
     def render(self, screen, where=None):
         if not self.message:
             return
@@ -53,10 +59,25 @@ class Message(object):
         text = self.font.render(self.message,
             True, (255, 255, 255))
         if where is None:
-            where = text.get_rect()
-            where.centerx = screen.get_width() / 2
-            where.centery = screen.get_height() / 2
+            where = self._construct_location(text, screen)
         screen.blit(text, where)
+
+
+class MessageLine(Message):
+
+    def __init__(self, size, line_nr, offset=None):
+        super(MessageLine, self).__init__(size)
+        self.line_nr = line_nr
+        if offset is None:
+            self.offset = (0, 0)
+        else:
+            self.offset = offset
+
+    def _construct_location(self, text, screen):
+        where = super(MessageLine, self)._construct_location(text, screen)
+        where.centerx += self.offset[0]
+        where.centery += (20 * self.line_nr) + self.offset[1]
+        return where
 
 
 class Monitor(spacecraft.server.ClientBase):
@@ -68,6 +89,7 @@ class Monitor(spacecraft.server.ClientBase):
         # For now, just load our only avatar
         self.avatars['Ship'] = pygame.image.load('./static/img/Ship.bmp')
         self.message = Message()
+        self.result_stat_msgs = []
         self.terrain = []
 
     @property
@@ -195,10 +217,20 @@ class Monitor(spacecraft.server.ClientBase):
                 elif msg["current"] == world.STATUS_WAITING:
                     self.message.set("Waiting...")
                 elif msg["current"] == world.STATUS_FINISHED:
-                    self.message.set('%s wins' % msg["winner"])
+                    self.message.set('%s wins' % (msg["winner"]))
+                    self.result_stat_msgs = []
+                    for i, line in enumerate(msg['result_table']):
+                        font_size = 16
+                        msg = MessageLine(20, i, offset=(0, 50))
+                        msg.set(line)
+                        self.result_stat_msgs.append(msg)
+
             self.process_message(msg)
         self.sparks.step()
         self.message.render(self.screen)
+        for stat in self.result_stat_msgs:
+            stat.render(self.screen)
+
         pygame.display.flip()
 
     def connectionLost(self, reason):

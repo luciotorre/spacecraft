@@ -60,6 +60,7 @@ class Game(service.Service):
         self.clients = []
         self.objects = []
         self.players = []
+        self.players_results = []
         self.terrain = []
 
         if start:
@@ -76,7 +77,8 @@ class Game(service.Service):
     def finish_game(self, winner):
         self.status = STATUS_FINISHED
         self.winner = winner
-        self.notifyEvent(type="game_status", current=self.status, winner=self.winner.name)
+        self.notifyEvent(type="game_status", current=self.status, winner=self.winner.name,
+                         result_table=self.get_result_table())
 
     def startService(self):
         self.update_loop.start(self.timeStep)
@@ -146,10 +148,20 @@ class Game(service.Service):
         self.unregister_object(obj)
         if obj in self.players:
             self.players.remove(obj)
+            self.players_results.append((obj.deaths, obj.hits, obj.name))
         self.notifyEvent(type="player_died", id=obj.get_id())
         if len(self.players) == 1:
             self.notifyEvent(type="player_won", id=self.players[0].get_id())
             self.finish_game(self.players[0])
+
+    def get_result_table(self):
+        results = self.players_results[:]
+        results.append((self.winner.deaths, self.winner.hits, self.winner.name))
+        results.sort()
+        msgs = []
+        for deaths, hits, name in results:
+            msgs.append('%s: %i deaths, %i hits' % (name, deaths, hits))
+        return msgs
 
 
 class ObjectBase(object):
@@ -357,7 +369,7 @@ class PlayerObject(ObjectBase):
     # number of steps that it takes for weapon to reload
     reload_delay = 10
     # base health
-    health = 100
+    health = 20
 
     def __init__(self, map, x=None, y=None):
         super(PlayerObject, self).__init__(map, x, y)
@@ -369,6 +381,13 @@ class PlayerObject(ObjectBase):
         self.fire = 0
         self.reloading = 0
         self.current_throttle = 0  # Current value
+        self.hits = 0
+        self.deaths = 0
+
+    def compute_hit(self, killed):
+        self.hits += 1
+        if killed:
+            self.deaths += 1
 
     def get_monitor_data(self):
         result = self.get_full_position()
@@ -400,7 +419,7 @@ class PlayerObject(ObjectBase):
                     euclid.Vector2(4, 0) + body.position
                 speedx, speedy = euclid.Matrix3.new_rotate(body.angle) * \
                     euclid.Vector2(135, 0) + body.linearVelocity
-                Bullet(self.map, x, y, speedx, speedy)
+                Bullet(self.map, x, y, speedx, speedy, shooter=self)
                 self.reloading = self.reload_delay
                 self.fire = 0
 
@@ -422,9 +441,12 @@ class PlayerObject(ObjectBase):
             self.map.unregister_player(self)
 
     def take_damage(self, damage):
+        """reduces healh, and also returns True if killed"""
         self.health -= damage
         if self.health < 0:
+            print '\nbitch is dead', self
             self.destroy()
+            return True
 
     def getReadings(self):
         if self.body is None:
@@ -436,8 +458,9 @@ class Bullet(ObjectBase):
     total_ttl = 100
     damage = 10
 
-    def __init__(self, map, x, y, speedx=None, speedy=None):
+    def __init__(self, map, x, y, speedx=None, speedy=None, shooter=None):
         self.map = map
+        self.shooter = shooter
         self.ttl = self.total_ttl
         self.create_body(x, y, speedx, speedy)
         self.map.register_object(self)
@@ -462,7 +485,10 @@ class Bullet(ObjectBase):
 
     def contact(self, other):
         if isinstance(other, PlayerObject):
-            other.take_damage(self.damage)
+            killed = other.take_damage(self.damage)
+            shooter = getattr(self, 'shooter', None)
+            if shooter:
+                shooter.compute_hit(killed)
         self.destroy()
         super(Bullet, self).contact(other)
 
@@ -480,4 +506,3 @@ class Shrapnel(Bullet):
         if not isinstance(other, Shrapnel):
             self.destroy()
         super(Bullet, self).contact(other)
-
