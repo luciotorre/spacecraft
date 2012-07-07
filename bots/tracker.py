@@ -10,6 +10,8 @@ class RandomClient(spacecraft.server.ClientBase):
     name = 'tracker'
     def messageReceived(self, message):
         if message.get('type') == 'sensor':
+            if 'gps' not in message:
+                return
             self.command("throttle", value=1)
             tracking = False
             x, y = message['gps']['position']

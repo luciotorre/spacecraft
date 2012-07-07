@@ -62,6 +62,7 @@ class Game(service.Service):
         self.players = []
         self.players_results = []
         self.terrain = []
+        self.taken_names = []
 
         if start:
             self.status = STATUS_RUNNING
@@ -125,6 +126,17 @@ class Game(service.Service):
     def register_client(self, client):
         self.clients.append(client)
 
+    def register_client_name(self, client, name):
+        if name in self.taken_names:
+            i = 1
+            while True:
+                i += 1
+                name = '%s %i' % (name, i)
+                if name not in self.taken_names:
+                    break
+        client.name = name  # we override the name
+        self.taken_names.append(name)
+
     def unregister_client(self, client):
         if client in self.clients:
             self.clients.remove(client)
@@ -148,7 +160,7 @@ class Game(service.Service):
         self.unregister_object(obj)
         if obj in self.players:
             self.players.remove(obj)
-            self.players_results.append((obj.deaths, obj.hits, obj.name))
+            self.players_results.append((obj.frags, obj.hits, obj.name))
         self.notifyEvent(type="player_died", id=obj.get_id())
         if len(self.players) == 1:
             self.notifyEvent(type="player_won", id=self.players[0].get_id())
@@ -156,11 +168,11 @@ class Game(service.Service):
 
     def get_result_table(self):
         results = self.players_results[:]
-        results.append((self.winner.deaths, self.winner.hits, self.winner.name))
-        results.sort()
+        results.append((self.winner.frags, self.winner.hits, self.winner.name))
+        results.sort(reverse=True)
         msgs = []
-        for deaths, hits, name in results:
-            msgs.append('%s: %i deaths, %i hits' % (name, deaths, hits))
+        for frags, hits, name in results:
+            msgs.append('%s: %i frags, %i hits' % (name, frags, hits))
         return msgs
 
 
@@ -369,7 +381,7 @@ class PlayerObject(ObjectBase):
     # number of steps that it takes for weapon to reload
     reload_delay = 10
     # base health
-    health = 20
+    health = 100
 
     def __init__(self, map, x=None, y=None):
         super(PlayerObject, self).__init__(map, x, y)
@@ -382,12 +394,13 @@ class PlayerObject(ObjectBase):
         self.reloading = 0
         self.current_throttle = 0  # Current value
         self.hits = 0
-        self.deaths = 0
+        self.frags = 0
 
-    def compute_hit(self, killed):
+    def compute_hit(self):
         self.hits += 1
-        if killed:
-            self.deaths += 1
+
+    def compute_frag(self):
+        self.frags += 1
 
     def get_monitor_data(self):
         result = self.get_full_position()
@@ -440,13 +453,15 @@ class PlayerObject(ObjectBase):
             super(PlayerObject, self).destroy()
             self.map.unregister_player(self)
 
-    def take_damage(self, damage):
+    def take_damage(self, damage, callback_hit=None, callback_frag=None):
         """reduces healh, and also returns True if killed"""
         self.health -= damage
+        if callable(callback_hit):
+            callback_hit()
         if self.health < 0:
-            print '\nbitch is dead', self
+            if callable(callback_frag):
+                callback_frag()
             self.destroy()
-            return True
 
     def getReadings(self):
         if self.body is None:
@@ -485,10 +500,12 @@ class Bullet(ObjectBase):
 
     def contact(self, other):
         if isinstance(other, PlayerObject):
-            killed = other.take_damage(self.damage)
             shooter = getattr(self, 'shooter', None)
+            callbacks = {}
             if shooter:
-                shooter.compute_hit(killed)
+                callbacks['callback_hit'] = shooter.compute_hit
+                callbacks['callback_frag'] = shooter.compute_frag
+            other.take_damage(self.damage, **callbacks)
         self.destroy()
         super(Bullet, self).contact(other)
 
