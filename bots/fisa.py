@@ -10,7 +10,6 @@ from spacecraft.euclid import Point2, Vector2
 from spacecraft.client_helpers import relative_angle
 
 AIM = 0.2
-POS_PER_VEL = 0.1
 
 SEARCH_THROTTLE = 0.3
 SEARCH_THROTTLES = 20
@@ -25,14 +24,19 @@ class FisaBotClient(ClientBase):
         self.turns_left = 0
         self.turn = 0
 
-    def point_and_shoot(self, my_pos, my_angle, t):
+    def point_and_shoot(self, my_pos, my_angle, target):
         # where to aim
-        aim_at = Point2(t.position.x+ t.velocity.x * POS_PER_VEL,
-                        t.position.y + t.velocity.y * POS_PER_VEL)
+        vel_modifier = 1
+        if target.object_type == 'player':
+            vel_modifier = 0.1
+        elif target.object_type == 'bullet':
+            vel_modifier = 0.2
+
+        aim_at = Point2(target.position.x + target.velocity.x * vel_modifier,
+                        target.position.y + target.velocity.y * vel_modifier)
         turn = relative_angle(my_pos.x, my_pos.y,
                               aim_at.x, aim_at.y,
                               my_angle)
-
         # aim and shoot
         self.command('turn', value=turn)
         self.command('fire')
@@ -58,6 +62,7 @@ class FisaBotClient(ClientBase):
                 # pick closest
                 e = sorted([(my_pos.distance(e.position), e)
                             for e in enemies])[0][1]
+
                 # shoot the enemy
                 self.point_and_shoot(my_pos, msg.gps.angle, e)
 
