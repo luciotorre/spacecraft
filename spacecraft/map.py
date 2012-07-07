@@ -19,6 +19,7 @@ class Wall(world.ObjectBase):
         self.y = float(self.node.attrib["y"])
         self.x += self.transform["translate"][0]
         self.y += self.transform["translate"][1]
+        print "wall", self.transform
         self.width = float(self.node.attrib["width"])
         self.height = float(self.node.attrib["height"])
         self.body = self.map.world.CreateStaticBody(
@@ -57,9 +58,11 @@ class MapLoader(object):
         suffix = ")"
         if transform_spec.startswith(prefix) and transform_spec.endswith(suffix):
             transform_spec = transform_spec[len(prefix):-len(suffix)]
-            self.transform_stack.append(
-                {'translate': map(float, transform_spec.split(','))}
-            )
+            old_translate = self.transform_stack[-1]["translate"]
+            new_translate = map(float, transform_spec.split(','))
+            new_translate[0] += old_translate[0]
+            new_translate[1] += old_translate[1]
+            self.transform_stack.append({'translate': new_translate})
 
     def process_node(self, node, game):
         if "game-tag" in node.attrib:
