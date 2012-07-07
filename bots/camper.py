@@ -8,6 +8,8 @@ import spacecraft
 from spacecraft import euclid
 
 
+
+
 def closer(target, candidates):
     ranked = [(abs(target - p), p) for p in candidates]
     ranked.sort()
@@ -74,7 +76,7 @@ class RandomClient(spacecraft.server.ClientBase):
             if enemy_found:
                 #self.camp = random.choice(self.camp_positions)
                 self.look_to(enemy_pos)
-                self.command("throttle", value=0.1)
+                self.command("throttle", value=1)
                 self.command("fire")
                 return
 
