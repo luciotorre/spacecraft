@@ -105,7 +105,6 @@ class ClientFactory(Factory):
 
 
 class Player(Client):
-
     def register(self, map):
         Client.register(self, map)
         reactor.callLater(0, self._register)
@@ -136,7 +135,8 @@ class Player(Client):
         self.object.fire = 1
 
     def sendUpdate(self):
-        self.sendMessage(type="sensor", **self.object.getReadings())
+        if hasattr(self, 'object'):
+            self.sendMessage(type="sensor", **self.object.getReadings())
         self.sendMessage(type="time", step=self.map.step)
 
     def do_name(self, msg):
