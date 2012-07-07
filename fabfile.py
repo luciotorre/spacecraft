@@ -1,6 +1,8 @@
 import os
 import sys
+import subprocess
 
+from time import sleep
 from fabric.api import local
 
 
@@ -45,11 +47,18 @@ def coverage():
 def versus(bot1, bot2, *server_args):
     """Start a server and two clients, and a monitor to watch them"""
     check_bootstrap()
-    local('screen -dmS server ./virtualenv/bin/twistd -n spacecraft %s --start true' % ' '.join(server_args))
-    local('PYTHONPATH=. ./virtualenv/bin/python %s &' % bot1)
-    local('PYTHONPATH=. ./virtualenv/bin/python %s &' % bot2)
-    local('PYTHONPATH=. ./virtualenv/bin/python spacecraft/monitor.py ')
-    local('screen -X -S server quit')
+    procs = []
+    procs.append(subprocess.Popen(
+        ['./virtualenv/bin/twistd', '-n', 'spacecraft'] +
+        list(server_args) + ['--start', 'true']))
+    sleep(2)
+    procs.append(subprocess.Popen(
+        ['./virtualenv/bin/python',  bot1], env={'PYTHONPATH': '.'}))
+    procs.append(subprocess.Popen(
+        ['./virtualenv/bin/python',  bot2], env={'PYTHONPATH': '.'}))
+    local('PYTHONPATH=. ./virtualenv/bin/python spacecraft/monitor.py')
+    for proc in procs:
+        proc.terminate()
 
 # -----------------------------------------------------------------
 # Tasks from here down aren't intended to be used directly
