@@ -8,8 +8,6 @@ import spacecraft
 from spacecraft import euclid
 
 
-
-
 def closer(target, candidates):
     ranked = [(abs(target - p), p) for p in candidates]
     ranked.sort()
@@ -39,10 +37,10 @@ class RandomClient(spacecraft.server.ClientBase):
         ]
 
     lookout_positions = [
-        euclid.Point2(40, 60),
-        euclid.Point2(60, 40),
-        euclid.Point2(60, 60),
-        euclid.Point2(40, 40),
+        euclid.Point2(24, 75),
+        euclid.Point2(75, 25),
+        euclid.Point2(75, 75),
+        euclid.Point2(24, 25),
         ]
 
     def goto(self, target):
@@ -95,7 +93,6 @@ class RandomClient(spacecraft.server.ClientBase):
 
 
             # if not camped goto camp position
-            print self.camp
             dist = abs(self.pos - self.camp)
             if dist > 10:
                 self.look_to(self.camp)
