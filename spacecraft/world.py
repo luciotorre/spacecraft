@@ -239,6 +239,34 @@ class EngineForcePowerUp(PowerUp):
         super(EngineForcePowerUp, self).contact(other)
 
 
+class RapidFirePowerUp(PowerUp):
+    ratio = 5
+    duration = 100
+    def contact(self, other):
+        if isinstance(other, PlayerObject):
+            print "reload delay before effect", other.reload_delay
+            other.reload_delay /= self.ratio
+            print other.reload_delay
+            rapid_fire_effect = RapidFireEffect(self.duration, self.ratio)
+            other.callbacks.append(rapid_fire_effect.run)
+        super(RapidFirePowerUp, self).contact(other)
+
+
+class RapidFireEffect:
+    def __init__(self, duration, ratio):
+        self.d = duration
+        self.r = ratio
+
+    def run(self, player):
+        self.d -= 1
+        if self.d == 0:
+            print "finish rapid fire"
+            player.reload_delay *= self.r
+            print "reload delay after finish", player.reload_delay
+            return False
+        return True
+
+
 class ProximityMine(PowerUp):
     radius = 4
     bullets = 50
@@ -382,6 +410,7 @@ class PlayerObject(ObjectBase):
     reload_delay = 10
     # base health
     health = 100
+    callbacks = []
 
     def __init__(self, map, x=None, y=None):
         super(PlayerObject, self).__init__(map, x, y)
@@ -442,6 +471,21 @@ class PlayerObject(ObjectBase):
                 Bullet(self.map, x, y, speedx, speedy, shooter=self)
                 self.reloading = self.reload_delay
                 self.fire = 0
+
+        self.run_callbacks()
+
+    def run_callbacks(self):
+        """ Runs callbacks
+
+        If callback returns false it won't be run again.
+        """
+        if self.callbacks:
+            new_callbacks = []
+            for cb in self.callbacks:
+                r = cb(self)
+                if r:
+                    new_callbacks.append(cb)
+            self.callbacks = new_callbacks
 
     def get_type(self):
         return "player"
