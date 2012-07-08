@@ -136,6 +136,16 @@ class Monitor(spacecraft.server.ClientBase):
                     self.track_next()
                 elif event.key == pygame.K_RIGHT:
                     self.track_previous()
+                elif event.key == pygame.K_UP:
+                    self.zoom_in()
+                elif event.key == pygame.K_DOWN:
+                    self.zoom_out()
+
+    def zoom_in(self):
+        self.scene.scale(1.1)
+
+    def zoom_out(self):
+        self.scene.scale(0.9)
 
     def process_message(self, message):
         pass
@@ -167,8 +177,9 @@ class Monitor(spacecraft.server.ClientBase):
 
     def draw_proximity_area(self, position):
         color = (36, 46, 56)
-        pygame.draw.circle(self.screen, color, position,
-                           UNIVERSE_SCALING_FACTOR * world.ProximitySensor.radius, 1)
+        radius, _ = self.scene.to_screen(
+            world.ProximitySensor.radius, world.ProximitySensor.radius)
+        pygame.draw.circle(self.screen, color, position, radius, 1)
 
     def draw_name(self, position, name):
         font_size = 16
@@ -202,10 +213,9 @@ class Monitor(spacecraft.server.ClientBase):
         self.offset = self.next_offset
         for wall in self.terrain:
             x, y = self.to_screen((wall['x'], wall['y']))
-            w = int(wall['width'] * 7) # Because 7 works
-            h = int(wall['height'] * 7)
-            y = y - h
-            rect = pygame.Rect(x, y, w, h)
+            w, h = self.to_screen((wall['width'] + wall['x'],
+                        wall['height'] + wall['y']))
+            rect = pygame.Rect(x, y, w - x, h - y)
             pygame.draw.rect(self.screen, (100, 100, 100), rect, 0)
         for msg in messages:
             kind = msg.get("type", None)
@@ -267,7 +277,7 @@ class Monitor(spacecraft.server.ClientBase):
     def set_next_offset(self, msg):
         if self.world_size==[0,0]:
             # the world size has not arrived yet
-            return 
+            return
         x, y = self.scene.to_screen(*msg['position'])
         speedx, speedy = msg['velocity']
         w, h = self.scene.size

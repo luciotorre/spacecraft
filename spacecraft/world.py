@@ -177,6 +177,7 @@ class Game(service.Service):
 
 
 class ObjectBase(object):
+    name = "unknown"
 
     def __init__(self, map, x=None, y=None):
         self.map = map
