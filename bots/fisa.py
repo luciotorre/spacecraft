@@ -24,7 +24,7 @@ class FisaBotClient(ClientBase):
         self.turns_left = 0
         self.turn = 0
 
-    def point_and_shoot(self, my_pos, my_angle, target):
+    def point_and_shoot(self, target):
         # where to aim
         vel_modifier = 1
         if target.object_type == 'player':
@@ -34,9 +34,9 @@ class FisaBotClient(ClientBase):
 
         aim_at = Point2(target.position.x + target.velocity.x * vel_modifier,
                         target.position.y + target.velocity.y * vel_modifier)
-        turn = relative_angle(my_pos.x, my_pos.y,
+        turn = relative_angle(self.pos.x, self.pos.y,
                               aim_at.x, aim_at.y,
-                              my_angle)
+                              self.angle)
         # aim and shoot
         self.command('turn', value=turn)
         self.command('fire')
@@ -46,8 +46,9 @@ class FisaBotClient(ClientBase):
 
         if msg.type == 'sensor':
             # useful data transformations
-            my_pos = Point2(*msg.gps.position)
-            my_vel = Vector2(*msg.gps.velocity)
+            self.pos = Point2(*msg.gps.position)
+            self.vel = Vector2(*msg.gps.velocity)
+            self.angle = msg.gps.angle
 
             radar = [obj for obj in msg.proximity]
             for x in radar:
@@ -60,11 +61,11 @@ class FisaBotClient(ClientBase):
 
             if enemies:
                 # pick closest
-                e = sorted([(my_pos.distance(e.position), e)
+                e = sorted([(self.pos.distance(e.position), e)
                             for e in enemies])[0][1]
 
                 # shoot the enemy
-                self.point_and_shoot(my_pos, msg.gps.angle, e)
+                self.point_and_shoot(e)
 
             else:
                 # find bullets
@@ -74,8 +75,8 @@ class FisaBotClient(ClientBase):
                 # calculate incoming
                 for b in bullets:
                     future_b_pos = b.position + b.velocity
-                    future_my_pos = my_pos + my_vel
-                    distance = my_pos.distance(b.position)
+                    future_my_pos = self.pos + self.vel
+                    distance = self.pos.distance(b.position)
                     future_distance = future_my_pos.distance(future_b_pos)
                     if distance > future_distance:
                         incoming.append((future_distance - distance, b))
@@ -85,7 +86,7 @@ class FisaBotClient(ClientBase):
                     b = sorted(incoming)[0][1]
 
                     # point and shoot the bullet
-                    self.point_and_shoot(my_pos, msg.gps.angle, b)
+                    self.point_and_shoot(b)
                 else:
                     # move N times, then rotate N times
                     if self.throttles_left:
