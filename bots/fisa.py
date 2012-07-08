@@ -100,16 +100,15 @@ class FisaBotClient(ClientBase):
                     self.point_and_shoot(b)
                 else:
                     # move N times, then rotate N times
+                    # will hit wall?
+                    pointing_vector = cmath.rect(WALL_SAFE_DISTANCE, self.angle)
+                    pointing_vector = Vector2(pointing_vector.real, pointing_vector.imag)
+                    pointing_to = predict_pos(self.pos, pointing_vector)
+                    wall_in_front = self.wall_between(pointing_to)
+
                     if self.throttles_left:
                         # must move
-                        # will hit wall?
-                        hitting_wall = False
-                        pointing_vector = cmath.rect(WALL_SAFE_DISTANCE, self.angle)
-                        pointing_vector = Vector2(pointing_vector.real, pointing_vector.imag)
-                        pointing_to = predict_pos(self.pos, pointing_vector)
-                        hitting_wall = self.wall_between(pointing_to)
-
-                        if hitting_wall:
+                        if wall_in_front:
                             # but made half movements and still not velocity
                             # so stop, turn, and try again
                             self.throttles_left = 0
@@ -133,8 +132,8 @@ class FisaBotClient(ClientBase):
                         self.turns_left = SEARCH_TURNS
                         self.turn = random.randint(-1, 1)
 
-                    # TODO shoot if not hitting a wall
-                    self.command('fire')
+                    if not wall_in_front:
+                        self.command('fire')
 
         elif msg.type == 'map_description':
             self.terrain = msg.terrain
