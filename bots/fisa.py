@@ -89,7 +89,7 @@ class FisaBotClient(ClientBase):
                     future_my_pos = predict_pos(self.pos, self.vel, 0.1)
                     distance = self.pos.distance(b.position)
                     future_distance = future_my_pos.distance(future_b_pos)
-                    if distance > future_distance:
+                    if distance - future_distance > 3:
                         incoming.append((future_distance - distance, b))
 
                 if incoming:
