@@ -1,4 +1,5 @@
 # -*- coding: utf-8 *-*
+import uuid
 from twisted.internet.protocol import ClientFactory
 from twisted.internet import reactor
 import random
@@ -18,7 +19,7 @@ def closer(target, candidates):
 
 class RandomClient(spacecraft.server.ClientBase):
 
-    name = "navigator"
+    name = "navigator_" + str(uuid.uuid4())[:3]
 
     gridmap = None
     way = None
@@ -44,6 +45,16 @@ class RandomClient(spacecraft.server.ClientBase):
             target.x, target.y, self.angle)
         self.command('turn', value=turn)
 
+    def goto(self, target):
+        dist = abs(self.pos - target)
+        target = target - self.vel * dist / 70
+        self.look_to(target)
+
+    def aim(self, target, target_velocity):
+        dist = abs(self.pos - target)
+        target = target + target_velocity * dist / 70
+        self.look_to(target)
+
     def messageReceived(self, message):
         if self.gridmap is None:
             self.gridmap = maptools.GridMap("maps/cross.svg")
@@ -55,6 +66,7 @@ class RandomClient(spacecraft.server.ClientBase):
                 return
 
             self.pos = euclid.Point2(*message['gps']['position'])
+            self.vel = euclid.Point2(*message['gps']['velocity'])
             self.angle = message['gps']['angle']
 
             # if number of enemies visible == 1
@@ -65,13 +77,21 @@ class RandomClient(spacecraft.server.ClientBase):
                 if obj['object_type'] in ['player']:
                     enemies += 1
                     ep = p2(*obj['position'])
+                    ev = p2(*obj['velocity'])
 
             if enemies == 1:
                 if self.gridmap.visible(self.pos, ep):
-                    self.look_to(ep)
+                    self.aim(ep, ev)
                     self.command("throttle", value=1)
                     self.command("fire")
                     return
+                else:
+                    print "enemy not visible."
+            elif enemies > 1:
+                # FLEE
+                while abs(self.pos - self.camp) < 150:
+                    self.camp, self.camp_look = random.choice(self.camp_options)
+
 
             # camped!!!
             if abs(self.pos - self.camp) < 10:
@@ -95,10 +115,8 @@ class RandomClient(spacecraft.server.ClientBase):
 
 
             waypoint = p2(*self.gridmap.towards_goal_from(self.pos))
-            print "going to", waypoint, "from", self.pos
-            print "w1", self.gridmap.is_wall(waypoint)
 
-            self.look_to(waypoint)
+            self.goto(waypoint)
             self.command("throttle", value=1)
 
 

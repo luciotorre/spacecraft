@@ -3,7 +3,7 @@ import random
 
 from spacecraft import map
 
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, LineString
 from spacecraft import euclid
 
 class MapLoader(map.MapLoader):
@@ -18,7 +18,6 @@ class MapLoader(map.MapLoader):
         self.close_methods = {
             }
 
-
     def open_rect(self, node, game, transform):
         x = float(node.attrib["x"])
         y = float(node.attrib["y"])
@@ -28,12 +27,12 @@ class MapLoader(map.MapLoader):
         height = float(node.attrib["height"])
         game.add_wall(x, y, width, height)
 
+
 class GridMap(object):
 
     xsize = 300
     ysize = 300
     xbuckets = ybuckets = 50
-
 
     def __init__(self, filename):
         l = MapLoader(filename)
@@ -41,10 +40,10 @@ class GridMap(object):
         l.setup_map(self)
         self.build_grid()
         self.goal = None
-        self.goal_grid = [ [float("+inf")] * self.ybuckets for i in range(self.xbuckets) ]
+        self.goal_grid = None
 
     def build_grid(self):
-        self.grid = [ [0] * self.ybuckets for i in range(self.xbuckets) ]
+        self.grid = [[0] * self.ybuckets for i in range(self.xbuckets)]
         for xb in range(self.xbuckets):
             for yb in range(self.ybuckets):
                 cell = self.build_cell(xb, yb)
@@ -109,7 +108,7 @@ class GridMap(object):
                 else:
                     val = str(self.grid[xp][yp])
 
-                parts.append( val )
+                parts.append(val)
             print "".join(parts)
 
     def dump_path(self, start, goal, path, X=[]):
@@ -223,9 +222,7 @@ class GridMap(object):
         return False
 
     def visible(self, start, end):
-        _start = self.world_to_cell(*start)
-        _end = self.world_to_cell(*end)
-        return self._visible(_start, _end)
+        return not self.intersects(LineString([start, end]))
 
     def waypoint(self, start, goal):
         """In world coordinates!"""
@@ -281,6 +278,8 @@ class GridMap(object):
         step = 0
         while True:
             np = winner(self.neighbor_nodes(goal), self.goalpath)
+            if np is None:
+                break
             if not self._visible(p, np):
                 break
             goal = np
