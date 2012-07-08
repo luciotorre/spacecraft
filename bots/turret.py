@@ -1,13 +1,11 @@
 # -*- coding: utf-8 *-*
-import random
 from bunch import bunchify
-from math import pi
 
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory
 
 from spacecraft.server import ClientBase
-from spacecraft.euclid import Point2, Vector2
+from spacecraft.euclid import Point2
 from spacecraft.client_helpers import relative_angle
 
 AIM = 0.2
@@ -19,7 +17,7 @@ class TurretBotClient(ClientBase):
     def messageReceived(self, msg):
         msg = bunchify(msg)
 
-        if 'status' in msg:
+        if msg.type == 'sensor':
             targets = [obj for obj in msg.proximity
                        if obj.object_type == 'player']
 
