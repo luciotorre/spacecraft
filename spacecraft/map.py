@@ -19,7 +19,6 @@ class Wall(world.ObjectBase):
         self.y = float(self.node.attrib["y"])
         self.x += self.transform["translate"][0]
         self.y += self.transform["translate"][1]
-        print "wall", self.transform
         self.width = float(self.node.attrib["width"])
         self.height = float(self.node.attrib["height"])
         self.body = self.map.world.CreateStaticBody(
@@ -45,6 +44,7 @@ class MapLoader(object):
             "{http://www.w3.org/2000/svg}rect": self.open_rect,
             "engine-force-powerup": self.open_engine_force_powerup,
             "proximity-mine": self.proximity_mine,
+            "rapid-fire-powerup": self.rapid_fire_powerup
             }
 
         self.close_methods = {
@@ -93,11 +93,16 @@ class MapLoader(object):
         sodipodi = "{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}"
         x = float(node.attrib[sodipodi + "cx"]) + transform['translate'][0]
         y = float(node.attrib[sodipodi + "cy"]) + transform['translate'][1]
-        print "powerup", x, y
         world.EngineForcePowerUp(game, x, y)
 
     def proximity_mine(self, node, game, transform):
         sodipodi = "{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}"
         world.ProximityMine(game,
+            float(node.attrib[sodipodi + "cx"]) + transform['translate'][0],
+            float(node.attrib[sodipodi + "cy"]) + transform['translate'][1])
+
+    def rapid_fire_powerup(self, node, game, transform):
+        sodipodi = "{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}"
+        world.RapidFirePowerUp(game,
             float(node.attrib[sodipodi + "cx"]) + transform['translate'][0],
             float(node.attrib[sodipodi + "cy"]) + transform['translate'][1])
