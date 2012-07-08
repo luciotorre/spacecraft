@@ -2,7 +2,7 @@ import math
 
 from twisted.internet.protocol import ClientFactory
 from twisted.internet import reactor
-from random import random
+from random import random, shuffle
 from spacecraft.client_helpers import relative_angle
 
 
@@ -11,7 +11,15 @@ import spacecraft
 class BFClient(spacecraft.server.ClientBase):
     name = 'Ali'
     steps = 0
+    directions = [[-30, -30], [0, -30], [30, -30],
+                  [-30, 0],             [30, 0],
+                  [-30, 30],  [0, 30],  [30, 30]]
+    dx = 0
+    dy = 0
     def messageReceived(self, message):
+        if message['type'] == 'map_description':
+            self.map = message
+        
         self.steps += 1
         if message['type'] == 'sensor' and message.get('gps', False):
             gps = message['gps']
@@ -22,7 +30,9 @@ class BFClient(spacecraft.server.ClientBase):
             # Butterfly
             # turn, throttle = self.butterfly(gps)
 
-            turn, throttle = self.navigate(gps)
+            #turn, throttle = self.navigate(gps)
+
+            turn, throttle = self.walk_the_park(gps)
 
             # Speed control
             if too_fast(gps) and not looking_center(gps):
@@ -77,7 +87,56 @@ class BFClient(spacecraft.server.ClientBase):
             throttle = 1
         return turn, throttle
 
+    def walk_the_park(self, gps):
+        x, y = gps['position']
+        angle = gps['angle']
+        if self.steps % 50 == 0:
+            self.dx, self.dy = self.get_new_destination(gps)
+        turn = relative_angle(x, y, self.dx, self.dy, angle)
+        return turn, 1
 
+    def get_new_destination(self, gps):
+        x, y = gps['position']
+        shuffle(self.directions)
+        for d in self.directions:
+            pdx, pdy = x + d[0], y + d[1]
+            if not self.collides(x, y, pdx, pdy):
+                return pdx, pdy
+        return 0, 0
+
+    def collides(self, x, y, pdx, pdy):
+        for w in self.get_walls():
+            if intersect([x, y],[pdx, pdy], w[0], w[1]):
+                return True
+        return False
+
+    def get_walls(self):
+        t = self.map['terrain']
+        sides = []
+        for w in t:
+            wx, wy = w['x'], w['y']
+            w, h = w['width'], w['height']
+            sides.append([[wx, wy], [wx+w, wy]])
+            sides.append([[wx, wy], [wx, wy+h]])
+            sides.append([[wx+w, wy], [wx+w, wy+h]])
+            sides.append([[wx, wy+h], [wx, wy+h]])
+        return sides
+        
+    def get_center(self):
+        xsize, ysize = self.map['xsize'], self.map['ysize']
+        return xsize/2, ysize/2
+
+    def get_map_size(self):
+        return self.map['xsize'], self.map['ysize']
+    
+    
+
+def ccw(A,B,C):
+    return (C[1]-A[1])*(B[0]-A[0]) > (B[1]-A[1])*(C[0]-A[0])
+
+def intersect(A,B,C,D):
+    return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
+        
 def looking_center(gps):
     x, y = gps['position']
     angle = gps['angle']
@@ -104,7 +163,8 @@ def get_closer_player(message):
     myxy = message['gps']['position']
     players = []
     for obj in message.get('proximity', []):
-        if obj['object_type'] in ['player']:
+        if obj['object_type'] in ['player'] \
+                and not self.collides(myxy[0], myxy[1], pxy[0], pxy[1]):
             pxy = obj['position']
             players.append({'position': obj['position'],
                             'distance': distance(myxy, pxy)})
