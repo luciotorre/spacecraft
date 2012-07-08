@@ -9,6 +9,9 @@ import spacecraft
 TILE_SIZE = 10
 TWO_PI = 2 * pi
 
+def dist(x1, y1, x2, y2):
+    return sqrt((x1 - x2)**2 + (y1 - y2)**2)
+
 class Wall(object):
     def __init__(self, x, y, w, h):
         self.x, self.y, self.w, self.h = x, y, w, h
@@ -65,8 +68,8 @@ class Guesstimate(object):
         self.certainty = 50
 
     def step(self):
-        self.x += self.speedx
-        self.y += self.speedy
+        self.x += self.speedx / 10
+        self.y += self.speedy / 10
         self.certainty -= 1
 
 class NavigatorClient(spacecraft.server.ClientBase):
@@ -87,46 +90,73 @@ class NavigatorClient(spacecraft.server.ClientBase):
         if parser:
             parser(message)
 
+    def filter_visible(self, objs, x, y, obj_type):
+        result = [o for o in objs if o['object_type'] == obj_type and
+                self.has_line_of_fire(x, y, o['position'][0], o['position'][1])]
+        result.sort(key=lambda o:(o['position'][0] - x)**2 + (o['position'][1] - y)**2)
+        return result
+
+    def is_incoming(self, x, y, bullet):
+        bulletx, bullety = bullet['position']
+        speedx, speedy = bullet['velocity']
+        nextdist = dist(x, y, bulletx + speedx, bullety + speedy)
+        return nextdist < dist(x, y, bulletx, bullety) * 0.9
+
     def parse_sensor(self, message):
         if 'gps' not in message:
             return
         x, y = message['gps']['position']
         angle = message['gps']['angle']
         speedx, speedy = message['gps']['velocity']
-        tracking = False
         # Increase visited tile count
         self.visit(x, y)
 
-        # Check if we should track
-        for obj in message.get('proximity', []):
-            # FIXME: If there's a player, forget the powerup!
-            if obj['object_type'] in ['powerup', 'player']:
-                trackx, tracky = obj['position']
-                trackspeedx, trackspeedy = obj['velocity']
-                if self.has_line_of_fire(x, y, trackx, tracky):
-                    tracking = True
-                    d = sqrt((x - trackx)**2 + (y - tracky)**2)
-                    if obj['object_type'] == 'player':
-                        turn = relative_angle(x, y, trackx, tracky, angle)
-                        self.command('turn', value=turn)
-                        self.guesstimate = Guesstimate(trackx, tracky, trackspeedx, trackspeedy)
-                        self.command("fire")
-                    else:
-                        # (x + speedx, y + speedy) here, to compensate the "orbit" effect
-                        turn = relative_angle(
-                            x + speedx * d / 70, y + speedy * d / 70,
-                            trackx, tracky, angle)
-                        self.command('turn', value=turn)
-                        self.command("throttle", value=1)
+        objs = message.get('proximity', [])
+        bullets = self.filter_visible(objs, x, y, 'bullet')
+        bullets = [b for b in bullets if self.is_incoming(x, y, b)]
+        players = self.filter_visible(objs, x, y, 'player')
+        powerups = self.filter_visible(objs, x, y, 'powerup')
+        if players:
+            #~ print "Firing at player"
+            obj = players[0]
+            trackx, tracky = obj['position']
+            trackspeedx, trackspeedy = obj['velocity']
+            d = dist(x, y, trackx, tracky)
+            turn = relative_angle(x, y, trackx, tracky, angle)
+            self.command('turn', value=turn)
+            self.guesstimate = Guesstimate(trackx, tracky, trackspeedx, trackspeedy)
+            self.command("fire")
+        elif bullets:
+            #~ print "Firing at bullet"
+            obj = bullets[0]
+            trackx, tracky = obj['position']
+            trackspeedx, trackspeedy = obj['velocity']
+            d = sqrt((x - trackx)**2 + (y - tracky)**2)
+            turn = relative_angle(x, y, trackx, tracky, angle)
+            self.command('turn', value=turn)
+            self.command("fire")
+        elif powerups:
+            #~ print "Grabbing powerup"
+            obj = powerups[0]
+            trackx, tracky = obj['position']
+            trackspeedx, trackspeedy = obj['velocity']
+            d = sqrt((x - trackx)**2 + (y - tracky)**2)
+            # (x + speedx, y + speedy) here, to compensate the "orbit" effect
+            turn = relative_angle(
+                x + speedx * d / 70, y + speedy * d / 70,
+                trackx, tracky, angle)
+            self.command('turn', value=turn)
+            self.command("throttle", value=1)
             #~ else:
                 #~ print obj
-        if not tracking:
-            if self.guesstimate and self.guesstimate.certainty > 0:
-                turn = relative_angle(x, y, self.guesstimate.x, self.guesstimate.y, angle)
-                self.command('turn', value=turn)
-                self.command("fire")
-                self.guesstimate.step()
-                return
+        elif self.guesstimate and self.guesstimate.certainty > 0:
+            #~ print "Firing at a guesstimate", self.guesstimate.certainty
+            turn = relative_angle(x, y, self.guesstimate.x, self.guesstimate.y, angle)
+            self.command('turn', value=turn)
+            self.command("fire")
+            self.guesstimate.step()
+        else:
+            #~ print "No guesstimate"
             # Pick a good next exploration tile
             if self.going is None or not self.has_line_of_fire(x, y, self.going.x, self.going.y):
                 options = [t for t in self.tiles
@@ -147,6 +177,7 @@ class NavigatorClient(spacecraft.server.ClientBase):
             divergence = (targetangle - speedangle) % TWO_PI
             divergence = min(divergence, TWO_PI - divergence)
             if speed > 500 and divergence < 0.1:
+                #~ print "Firing at random"
                 fireangle = self.pick_fireangle(x, y, speedx, speedy, angle)
                 if fireangle is not None:
                     self.command("turn", value=fireangle)
@@ -159,6 +190,7 @@ class NavigatorClient(spacecraft.server.ClientBase):
                     #~ print "Not bang because divergence = %.3f" % divergence
                 #~ else:
                     #~ print "EH!? OGG WANT BANG!!1! Y U NO BANG!??!?1!?"
+                #~ print "Going to", self.going
                 turn = relative_angle(x, y, self.going.x + speedx, self.going.y + speedy, angle)
                 self.command("throttle", value=1)
                 self.command("turn", value=turn)
@@ -216,7 +248,7 @@ class NavigatorClient(spacecraft.server.ClientBase):
             iright = w.intersect(right)
             if iright:
                 dright = min(dright, iright.distance(origin))
-        if max(dleft, dright) < 25:
+        if max(dleft, dright) < 35:
             return
         COMPENSATE = pi / 8
         if dleft > dright:
