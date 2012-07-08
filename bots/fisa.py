@@ -50,7 +50,6 @@ class FisaBotClient(ClientBase):
                 return True
         return False
 
-
     def messageReceived(self, msg):
         msg = bunchify(msg)
 
@@ -81,7 +80,8 @@ class FisaBotClient(ClientBase):
             else:
                 # find bullets
                 bullets = [obj for obj in radar
-                           if obj.object_type == 'bullet']
+                           if obj.object_type == 'bullet' and \
+                              not self.wall_between(obj.position)]
                 incoming = []
                 # calculate incoming
                 for b in bullets:
@@ -101,8 +101,10 @@ class FisaBotClient(ClientBase):
                 else:
                     # move N times, then rotate N times
                     # will hit wall?
-                    pointing_vector = cmath.rect(WALL_SAFE_DISTANCE, self.angle)
-                    pointing_vector = Vector2(pointing_vector.real, pointing_vector.imag)
+                    pointing_vector = cmath.rect(WALL_SAFE_DISTANCE,
+                                                 self.angle)
+                    pointing_vector = Vector2(pointing_vector.real,
+                                              pointing_vector.imag)
                     pointing_to = predict_pos(self.pos, pointing_vector)
                     wall_in_front = self.wall_between(pointing_to)
 
@@ -155,11 +157,12 @@ def predict_pos(point, velocity, modifier=1):
     return point + v
 
 
-def ccw(a,b,c):
-    return (c[1]-a[1])*(b[0]-a[0]) > (b[1]-a[1])*(c[0]-a[0])
+def ccw(a, b, c):
+    return (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0])
 
-def intersect(a,b,c,d):
-    return ccw(a,c,d) != ccw(b,c,d) and ccw(a,b,c) != ccw(a,b,d)
+
+def intersect(a, b, c, d):
+    return ccw(a, c, d) != ccw(b, c, d) and ccw(a, b, c) != ccw(a, b, d)
 
 
 def main():
