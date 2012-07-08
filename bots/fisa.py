@@ -14,7 +14,7 @@ AIM = 0.2
 SEARCH_THROTTLE = 0.3
 SEARCH_THROTTLES = 20
 SEARCH_TURNS = 3
-SPEED_PREDICTION_RATIO = 0.01
+
 
 class FisaBotClient(ClientBase):
     name = 'Fisa'
@@ -91,14 +91,22 @@ class FisaBotClient(ClientBase):
                     # move N times, then rotate N times
                     if self.throttles_left:
                         # must move
-                        if self.throttles_left < SEARCH_THROTTLES / 2 and \
-                           not is_moving(msg.gps.velocity):
-                               # but made half movements and still not velocity
-                               # so stop throttling and turn back
-                               self.throttles_left = 0
-                               self.turn = 1
-                               self.turns_left = 5
-                               self.command('turn', value=1)
+                        hitting_wall = False
+                        vel_modifier = 0.5
+                        for wall_side in self.wall_sides:
+                            future_pos = self.pos + Vector2(self.vel.x * vel_modifier,
+                                                            self.vel.y * vel_modifier)
+                            if intersect(self.pos, future_pos,
+                                         wall_side[0], wall_side[1]):
+                                hitting_wall = True
+                                break
+                        if hitting_wall:
+                            # but made half movements and still not velocity
+                            # so stop throttling and turn back
+                            self.throttles_left = 0
+                            self.turn = 1
+                            self.turns_left = 5
+                            self.command('turn', value=1)
                         else:
                             # keep moving
                             self.throttles_left -= 1
@@ -117,13 +125,26 @@ class FisaBotClient(ClientBase):
                         # shoot if not hitting a wall
                         self.command('fire')
 
-
         elif msg.type == 'map_description':
             self.terrain = msg.terrain
+            self.wall_sides = []
+            for wall in self.terrain:
+                x, y = wall.x, wall.y
+                x2, y2 = wall.x + wall.width, wall.y + wall.height
+                self.wall_sides.append((Point2(x, y), Point2(x2, y)))
+                self.wall_sides.append((Point2(x, y), Point2(x, y2)))
+                self.wall_sides.append((Point2(x2, y), Point2(x2, y2)))
+                self.wall_sides.append((Point2(x, y2), Point2(x, y2)))
 
 
 def is_moving(velocity):
     return abs(velocity[0]) + abs(velocity[1]) > 0.1
+
+def ccw(a,b,c):
+    return (c[1]-a[1])*(b[0]-a[0]) > (b[1]-a[1])*(c[0]-a[0])
+
+def intersect(a,b,c,d):
+    return ccw(a,c,d) != ccw(b,c,d) and ccw(a,b,c) != ccw(a,b,d)
 
 
 def main():
