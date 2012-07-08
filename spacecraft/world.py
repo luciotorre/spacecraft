@@ -404,11 +404,16 @@ class PlayerObject(ObjectBase):
         if self is not victim:
             self.frags += 1
 
+    def get_full_position(self):
+        result = super(PlayerObject, self).get_full_position()
+        if hasattr(self, 'name'):
+            result['name'] = self.name
+        return result
+
     def get_monitor_data(self):
         result = self.get_full_position()
         result['throttle'] = self.current_throttle
         result['health'] = self.health
-        result['name'] = self.name
         return result
 
     def execute(self):
