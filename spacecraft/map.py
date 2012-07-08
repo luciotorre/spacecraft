@@ -45,6 +45,7 @@ class MapLoader(object):
             "{http://www.w3.org/2000/svg}rect": self.open_rect,
             "engine-force-powerup": self.open_engine_force_powerup,
             "proximity-mine": self.proximity_mine,
+            "rapid-fire-powerup": self.rapid_fire_powerup
             }
 
         self.close_methods = {
@@ -99,5 +100,11 @@ class MapLoader(object):
     def proximity_mine(self, node, game, transform):
         sodipodi = "{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}"
         world.ProximityMine(game,
+            float(node.attrib[sodipodi + "cx"]) + transform['translate'][0],
+            float(node.attrib[sodipodi + "cy"]) + transform['translate'][1])
+
+    def rapid_fire_powerup(self, node, game, transform):
+        sodipodi = "{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}"
+        world.RapidFirePowerUp(game,
             float(node.attrib[sodipodi + "cx"]) + transform['translate'][0],
             float(node.attrib[sodipodi + "cy"]) + transform['translate'][1])
