@@ -34,7 +34,6 @@ class BorgClient(ClientBase):
     def __init__(self):
         self.bots = get_bots_by_name()
         self.enemy = None
-        self.current = None
 
     def messageReceived(self, message):
         if self.enemy is not None:
@@ -42,11 +41,11 @@ class BorgClient(ClientBase):
             return
 
         enemy = self.set_enemy(message)
-        if enemy is not None:
-            self.enemy.messageReceived(message)
-            return
-
-        self.current.messageReceived(message)
+        try:
+            enemy.messageReceived(message)
+        except:
+            self.enemy = None
+            del self.bots[enemy.name]
 
     def set_enemy(self, message):
         enemy = None
@@ -60,9 +59,10 @@ class BorgClient(ClientBase):
                     self.enemy.transport = self.transport
                     return self.enemy
 
-        self.current = random.choice(self.bots.values())
-        self.current.transport = self.transport
+        current = random.choice(self.bots.values())
+        current.transport = self.transport
         #print 'EMULATING', self.current.name
+        return current
 
 
 def main():
