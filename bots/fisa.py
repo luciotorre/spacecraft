@@ -43,6 +43,14 @@ class FisaBotClient(ClientBase):
         self.command('turn', value=turn)
         self.command('fire')
 
+    def wall_between(self, position):
+        for wall_side in self.wall_sides:
+            if intersect(self.pos, position,
+                         wall_side[0], wall_side[1]):
+                return True
+        return False
+
+
     def messageReceived(self, msg):
         msg = bunchify(msg)
 
@@ -59,7 +67,8 @@ class FisaBotClient(ClientBase):
 
             # find enemies
             enemies = [obj for obj in radar
-                       if obj.object_type == 'player']
+                       if obj.object_type == 'player' and \
+                          not self.wall_between(obj.position)]
 
             if enemies:
                 # pick closest
@@ -98,11 +107,7 @@ class FisaBotClient(ClientBase):
                         pointing_vector = cmath.rect(WALL_SAFE_DISTANCE, self.angle)
                         pointing_vector = Vector2(pointing_vector.real, pointing_vector.imag)
                         pointing_to = predict_pos(self.pos, pointing_vector)
-                        for wall_side in self.wall_sides:
-                            if intersect(self.pos, pointing_to,
-                                         wall_side[0], wall_side[1]):
-                                hitting_wall = True
-                                break
+                        hitting_wall = self.wall_between(pointing_to)
 
                         if hitting_wall:
                             # but made half movements and still not velocity
