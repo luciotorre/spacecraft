@@ -15,6 +15,8 @@ AIM = 0.2
 SEARCH_THROTTLE = 0.3
 SEARCH_THROTTLES = 20
 SEARCH_TURNS = 3
+MAX_SPEED = 15
+WALL_SAFE_DISTANCE = 20
 
 
 class FisaBotClient(ClientBase):
@@ -93,7 +95,7 @@ class FisaBotClient(ClientBase):
                         # must move
                         # will hit wall?
                         hitting_wall = False
-                        pointing_vector = cmath.rect(20, self.angle)
+                        pointing_vector = cmath.rect(WALL_SAFE_DISTANCE, self.angle)
                         pointing_vector = Vector2(pointing_vector.real, pointing_vector.imag)
                         pointing_to = predict_pos(self.pos, pointing_vector)
                         for wall_side in self.wall_sides:
@@ -112,7 +114,8 @@ class FisaBotClient(ClientBase):
                         else:
                             # keep moving
                             self.throttles_left -= 1
-                            self.command('throttle', value=SEARCH_THROTTLE)
+                            if abs(self.vel.x) + abs(self.vel.y) < MAX_SPEED:
+                                self.command('throttle', value=SEARCH_THROTTLE)
                     elif self.turns_left:
                         # must rotate
                         self.turns_left -= 1
