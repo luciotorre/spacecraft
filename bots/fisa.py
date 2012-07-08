@@ -80,7 +80,8 @@ class FisaBotClient(ClientBase):
             else:
                 # find bullets
                 bullets = [obj for obj in radar
-                           if obj.object_type == 'bullet']
+                           if obj.object_type == 'bullet' and \
+                              not self.wall_between(obj.position)]
                 incoming = []
                 # calculate incoming
                 for b in bullets:
