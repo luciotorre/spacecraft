@@ -60,6 +60,21 @@ def versus(bot1, bot2, *server_args):
     for proc in procs:
         proc.terminate()
 
+def cross(*bots):
+    """Start a server and two clients, and a monitor to watch them"""
+    check_bootstrap()
+    procs = []
+    procs.append(subprocess.Popen(
+        ['./virtualenv/bin/twistd', '-n', 'spacecraft', '--map',
+            'maps/cross.svg', '--xsize', '300', '--ysize', '300']))
+    sleep(2)
+    for bot in bots:
+        procs.append(subprocess.Popen(
+            ['./virtualenv/bin/python',  bot], env={'PYTHONPATH': '.'}))
+    local('PYTHONPATH=. ./virtualenv/bin/python spacecraft/monitor.py --size 600x600')
+    for proc in procs:
+        proc.terminate()
+
 # -----------------------------------------------------------------
 # Tasks from here down aren't intended to be used directly
 

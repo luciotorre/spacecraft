@@ -91,7 +91,7 @@ class RandomClient(spacecraft.server.ClientBase):
                     self.way = random.choice(self.waypoints)
                     self.gridmap.set_goal(self.way)
 
-            if pp is not None:
+            if pp is not None and enemies == 0:
                 # a powerup!!!
                 print "poweeeeeeeeeeeeer"
                 if self.gridmap.visible(self.pos, pp):
