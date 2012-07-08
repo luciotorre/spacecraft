@@ -70,6 +70,12 @@ class Game(service.Service):
             self.status = STATUS_WAITING
         self.winner = None
         self.update_loop = task.LoopingCall(self.doStep)
+        x, y = self.xsize * random.random(), self.ysize * random.random()
+        print "creating powerup at", x, y
+        RapidFirePowerUpRespawn(self, x, y)
+        print "creating powerup at", x, y
+        RapidFirePowerUpRespawn(self, x, y)
+
 
     def start_game(self):
         self.status = STATUS_RUNNING
@@ -251,6 +257,14 @@ class RapidFirePowerUp(PowerUp):
             rapid_fire_effect = RapidFireEffect(self.duration, self.ratio)
             other.callbacks.append(rapid_fire_effect.run)
         super(RapidFirePowerUp, self).contact(other)
+
+
+class RapidFirePowerUpRespawn(RapidFirePowerUp):
+    def contact(self, other):
+        super(RapidFirePowerUp, self).contact(other)
+        self.__class__(self.map, self.map.xsize * random.random(),
+                self.map.ysize * random.random())
+
 
 
 class RapidFireEffect:
