@@ -106,7 +106,7 @@ class FisaBotClient(ClientBase):
 
                         if hitting_wall:
                             # but made half movements and still not velocity
-                            # so stop throttling and turn back
+                            # so stop, turn, and try again
                             self.throttles_left = 0
                             self.turn = 1
                             self.turns_left = 0
@@ -115,7 +115,9 @@ class FisaBotClient(ClientBase):
                             # keep moving
                             self.throttles_left -= 1
                             if abs(self.vel.x) + abs(self.vel.y) < MAX_SPEED:
+                                # but no accelerate too much
                                 self.command('throttle', value=SEARCH_THROTTLE)
+
                     elif self.turns_left:
                         # must rotate
                         self.turns_left -= 1
