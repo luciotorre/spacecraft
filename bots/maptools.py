@@ -271,7 +271,7 @@ class GridMap(object):
         return self.cell_to_world(*way)
 
     def set_goal(self, goal):
-        self.goal = self.world_to_cell(*goal)
+        self.goal = self.player_world_to_cell(*goal)
 
         Q = set()
         self.goalpath = D = {}
