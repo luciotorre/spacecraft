@@ -31,9 +31,8 @@ class FisaBotClient(ClientBase):
             vel_modifier = 0.1
         elif target.object_type == 'bullet':
             vel_modifier = 0.2
+        aim_at = predict_pos(target.position, target.velocity, vel_modifier)
 
-        aim_at = Point2(target.position.x + target.velocity.x * vel_modifier,
-                        target.position.y + target.velocity.y * vel_modifier)
         turn = relative_angle(self.pos.x, self.pos.y,
                               aim_at.x, aim_at.y,
                               self.angle)
@@ -74,8 +73,8 @@ class FisaBotClient(ClientBase):
                 incoming = []
                 # calculate incoming
                 for b in bullets:
-                    future_b_pos = b.position + b.velocity
-                    future_my_pos = self.pos + self.vel
+                    future_b_pos = predict_pos(b.position, b.velocity, 0.1)
+                    future_my_pos = predict_pos(self.pos, self.vel, 0.1)
                     distance = self.pos.distance(b.position)
                     future_distance = future_my_pos.distance(future_b_pos)
                     if distance > future_distance:
@@ -91,15 +90,15 @@ class FisaBotClient(ClientBase):
                     # move N times, then rotate N times
                     if self.throttles_left:
                         # must move
+                        # will hit wall?
                         hitting_wall = False
-                        vel_modifier = 0.5
                         for wall_side in self.wall_sides:
-                            future_pos = self.pos + Vector2(self.vel.x * vel_modifier,
-                                                            self.vel.y * vel_modifier)
+                            future_pos = predict_pos(self.pos, self.vel, 0.5)
                             if intersect(self.pos, future_pos,
                                          wall_side[0], wall_side[1]):
                                 hitting_wall = True
                                 break
+
                         if hitting_wall:
                             # but made half movements and still not velocity
                             # so stop throttling and turn back
@@ -121,9 +120,8 @@ class FisaBotClient(ClientBase):
                         self.turns_left = SEARCH_TURNS
                         self.turn = random.randint(-1, 1)
 
-                    if is_moving(msg.gps.velocity):
-                        # shoot if not hitting a wall
-                        self.command('fire')
+                    # TODO shoot if not hitting a wall
+                    self.command('fire')
 
         elif msg.type == 'map_description':
             self.terrain = msg.terrain
@@ -137,8 +135,13 @@ class FisaBotClient(ClientBase):
                 self.wall_sides.append((Point2(x, y2), Point2(x, y2)))
 
 
-def is_moving(velocity):
-    return abs(velocity[0]) + abs(velocity[1]) > 0.1
+def predict_pos(point, velocity, modifier=1):
+    v = velocity
+    if modifier != 1:
+        v = Vector2(velocity.x * modifier,
+                    velocity.y * modifier)
+    return point + v
+
 
 def ccw(a,b,c):
     return (c[1]-a[1])*(b[0]-a[0]) > (b[1]-a[1])*(c[0]-a[0])
