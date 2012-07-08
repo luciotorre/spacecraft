@@ -1,6 +1,6 @@
 from twisted.internet.protocol import ClientFactory
 from twisted.internet import reactor
-from random import shuffle, choice
+from random import choice
 from spacecraft.client_helpers import relative_angle
 from spacecraft.euclid import LineSegment2, Point2, Matrix3
 from math import sqrt, atan2, pi
@@ -167,9 +167,6 @@ class NavigatorClient(spacecraft.server.ClientBase):
                 options = [o for o in options if o.visits == options[0].visits]
                 #~ print "Options:", options
                 self.going = max(options, key=lambda t:t.distance_to(x, y))
-                # Random exploration
-                #~ shuffle(options)
-                #~ self.going = min(options, key=lambda t:t.visits)
             speed = speedx**2 + speedy**2
             speedangle = atan2(speedy, speedx)
             targetangle = atan2(self.going.y - y, self.going.x - x)
