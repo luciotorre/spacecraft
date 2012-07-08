@@ -106,7 +106,7 @@ class RandomClient(spacecraft.server.ClientBase):
                 return
 
             # over wall!!! wander
-            if not self.gridmap.is_wall(self.pos):
+            if self.gridmap.is_wall(self.pos):
                 print "walled, wandering"
                 self.command("throttle", value=1)
                 if random.random() < 0.2:

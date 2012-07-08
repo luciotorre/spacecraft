@@ -70,11 +70,8 @@ class Game(service.Service):
             self.status = STATUS_WAITING
         self.winner = None
         self.update_loop = task.LoopingCall(self.doStep)
-        x, y = self.xsize * random.random(), self.ysize * random.random()
-        print "creating powerup at", x, y
-        RapidFirePowerUpRespawn(self, x, y)
-        print "creating powerup at", x, y
-        RapidFirePowerUpRespawn(self, x, y)
+        HealthPowerUpRespawn(self)
+        HealthPowerUpRespawn(self)
 
 
     def start_game(self):
@@ -246,9 +243,24 @@ class EngineForcePowerUp(PowerUp):
         super(EngineForcePowerUp, self).contact(other)
 
 
+class HealthPowerUp(PowerUp):
+
+    def contact(self, other):
+        if isinstance(other, PlayerObject):
+            other.health += 20
+        super(HealthPowerUp, self).contact(other)
+
+
+class HealthPowerUpRespawn(HealthPowerUp):
+    def contact(self, other):
+        super(HealthPowerUpRespawn, self).contact(other)
+        self.__class__(self.map)
+
+
 class RapidFirePowerUp(PowerUp):
     ratio = 5
     duration = 100
+
     def contact(self, other):
         if isinstance(other, PlayerObject):
             print "reload delay before effect", other.reload_delay
@@ -486,6 +498,11 @@ class PlayerObject(ObjectBase):
                 Bullet(self.map, x, y, speedx, speedy, shooter=self)
                 self.reloading = self.reload_delay
                 self.fire = 0
+
+                # pushback
+                force = euclid.Matrix3.new_rotate(body.angle) * \
+                    euclid.Vector2(-1, 0) * self.max_force * 3
+                body.ApplyForce(tuple(force), body.position)
 
         self.run_callbacks()
 

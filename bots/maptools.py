@@ -83,6 +83,31 @@ class GridMap(object):
         ny = int(y / box_w)
         return nx, ny
 
+    def player_world_to_cell(self, x, y):
+        p = self.world_to_cell(x, y)
+        if not self.is_wall((x, y)):
+            return p
+
+        def t((xb, yb)):
+            box_w = self.xsize / self.xbuckets
+
+            x = xb * box_w + box_w / 2
+            y = yb * box_w + box_w / 2
+
+            return euclid.Point2(x, y)
+
+        winner = None
+        distance = float("+inf")
+        for n in self.neighbor_nodes(p):
+            d = abs(t(n) - euclid.Point2(x, y))
+            if d < distance:
+                distance = d
+                winner = n
+
+        if winner is None:
+            raise Exception()
+        return winner
+
     def intersects(self, obj):
         return any(
             w.intersects(obj) for w in self.walls
@@ -218,8 +243,8 @@ class GridMap(object):
     def is_wall(self, pos):
         x, y = self.world_to_cell(*pos)
         if self.grid[x][y] == 1:
-            return True
-        return False
+            return False
+        return True
 
     def visible(self, start, end):
         return not self.intersects(LineString([start, end]))
@@ -269,7 +294,7 @@ class GridMap(object):
                     D[n] = alt
 
     def towards_goal_from(self, current):
-        p = self.world_to_cell(*current)
+        p = self.player_world_to_cell(*current)
 
         #n = winner(self.neighbor_nodes(p), self.goalpath)
         #return self.cell_to_world(*n)
