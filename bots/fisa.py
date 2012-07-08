@@ -12,7 +12,7 @@ from spacecraft.client_helpers import relative_angle
 
 AIM = 0.2
 
-SEARCH_THROTTLE = 0.5
+SEARCH_THROTTLE = 1
 SEARCH_THROTTLES = 20
 SEARCH_TURNS = 3
 MAX_SPEED = 15
