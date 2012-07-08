@@ -1,6 +1,7 @@
 # -*- coding: utf-8 *-*
 from bunch import bunchify
 import random
+import cmath
 
 from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory
@@ -92,9 +93,11 @@ class FisaBotClient(ClientBase):
                         # must move
                         # will hit wall?
                         hitting_wall = False
+                        pointing_vector = cmath.rect(20, self.angle)
+                        pointing_vector = Vector2(pointing_vector.real, pointing_vector.imag)
+                        pointing_to = predict_pos(self.pos, pointing_vector)
                         for wall_side in self.wall_sides:
-                            future_pos = predict_pos(self.pos, self.vel, 0.5)
-                            if intersect(self.pos, future_pos,
+                            if intersect(self.pos, pointing_to,
                                          wall_side[0], wall_side[1]):
                                 hitting_wall = True
                                 break
@@ -104,7 +107,7 @@ class FisaBotClient(ClientBase):
                             # so stop throttling and turn back
                             self.throttles_left = 0
                             self.turn = 1
-                            self.turns_left = 5
+                            self.turns_left = 0
                             self.command('turn', value=1)
                         else:
                             # keep moving
