@@ -23,7 +23,7 @@ def get_bots_by_name():
             if name == "ClientBase":
                 continue
             elif getattr(value, 'name', None) is not None and \
-               inspect.isclass(value):
+               inspect.isclass(value) and not issubclass(value, BorgClient):
                 bots[value.name] = value()
     return bots
 
