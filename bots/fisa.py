@@ -41,7 +41,8 @@ class FisaBotClient(ClientBase):
                               self.angle)
         # aim and shoot
         self.command('turn', value=turn)
-        self.command('fire')
+        if turn < 0.5:
+            self.command('fire')
 
     def wall_between(self, position):
         for wall_side in self.wall_sides:
