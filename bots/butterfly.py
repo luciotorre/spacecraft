@@ -92,7 +92,6 @@ class BFClient(spacecraft.server.ClientBase):
         angle = gps['angle']
         if self.steps % 20 == 0:
             self.dx, self.dy = self.get_new_destination(gps)
-            print self.dx, self.dy
         turn = relative_angle(x, y, self.dx, self.dy, angle)
         return turn, 1
 
@@ -103,10 +102,9 @@ class BFClient(spacecraft.server.ClientBase):
         for d in self.directions:
             pdx, pdy = x + d[0], y + d[1]
             if not self.collides(x, y, pdx, pdy) \
-                    and math.fabs(relative_angle(x, y, pdx, pdy, angle)) < 5:
-                print relative_angle(x, y, pdx, pdy, angle)
+                    and math.fabs(relative_angle(x, y, pdx, pdy, angle)) < 4:
                 return pdx, pdy
-        return 0, 0
+        return self.directions[0]
 
     def collides(self, x, y, pdx, pdy):
         for w in self.get_walls():
