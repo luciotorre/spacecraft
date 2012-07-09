@@ -19,9 +19,9 @@ class BFClient(spacecraft.server.ClientBase):
     def messageReceived(self, message):
         if message['type'] == 'map_description':
             self.map = message
-        
-        self.steps += 1
+
         if message['type'] == 'sensor' and message.get('gps', False):
+            self.steps += 1
             gps = message['gps']
             x, y = message['gps']['position']
             angle = message['gps']['angle']
@@ -42,7 +42,7 @@ class BFClient(spacecraft.server.ClientBase):
                 throttle = 1
 
             # Lock-on
-            closer_player = get_closer_player(message)
+            closer_player = self.get_closer_player(message)
             if closer_player:
                 px, py = closer_player['position']
                 turn = relative_angle(x, y, px, py, angle)
@@ -90,17 +90,21 @@ class BFClient(spacecraft.server.ClientBase):
     def walk_the_park(self, gps):
         x, y = gps['position']
         angle = gps['angle']
-        if self.steps % 50 == 0:
+        if self.steps % 20 == 0:
             self.dx, self.dy = self.get_new_destination(gps)
+            print self.dx, self.dy
         turn = relative_angle(x, y, self.dx, self.dy, angle)
         return turn, 1
 
     def get_new_destination(self, gps):
         x, y = gps['position']
+        angle = gps['angle']
         shuffle(self.directions)
         for d in self.directions:
             pdx, pdy = x + d[0], y + d[1]
-            if not self.collides(x, y, pdx, pdy):
+            if not self.collides(x, y, pdx, pdy) \
+                    and math.fabs(relative_angle(x, y, pdx, pdy, angle)) < 5:
+                print relative_angle(x, y, pdx, pdy, angle)
                 return pdx, pdy
         return 0, 0
 
@@ -121,22 +125,35 @@ class BFClient(spacecraft.server.ClientBase):
             sides.append([[wx+w, wy], [wx+w, wy+h]])
             sides.append([[wx, wy+h], [wx, wy+h]])
         return sides
-        
+
     def get_center(self):
         xsize, ysize = self.map['xsize'], self.map['ysize']
         return xsize/2, ysize/2
 
     def get_map_size(self):
         return self.map['xsize'], self.map['ysize']
-    
-    
+
+    def get_closer_player(self, message):
+        myxy = message['gps']['position']
+        players = []
+        for obj in message.get('proximity', []):
+            pxy = obj['position']
+            if obj['object_type'] in ['player'] \
+                    and not self.collides(myxy[0], myxy[1], pxy[0], pxy[1]):
+                players.append({'position': obj['position'],
+                                'distance': distance(myxy, pxy)})
+        if players:
+            return sorted(players, key=get_distance)[0]
+        else:
+            return {}
+
 
 def ccw(A,B,C):
     return (C[1]-A[1])*(B[0]-A[0]) > (B[1]-A[1])*(C[0]-A[0])
 
 def intersect(A,B,C,D):
     return ccw(A,C,D) != ccw(B,C,D) and ccw(A,B,C) != ccw(A,B,D)
-        
+
 def looking_center(gps):
     x, y = gps['position']
     angle = gps['angle']
@@ -159,19 +176,6 @@ def too_slow(gps):
     return math.fabs(vx) + math.fabs(vy) < 7
 
 
-def get_closer_player(message):
-    myxy = message['gps']['position']
-    players = []
-    for obj in message.get('proximity', []):
-        if obj['object_type'] in ['player'] \
-                and not self.collides(myxy[0], myxy[1], pxy[0], pxy[1]):
-            pxy = obj['position']
-            players.append({'position': obj['position'],
-                            'distance': distance(myxy, pxy)})
-    if players:
-        return sorted(players, key=get_distance)[0]
-    else:
-        return {}
 
 
 def get_distance(p):
