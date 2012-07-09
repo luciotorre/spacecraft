@@ -147,13 +147,16 @@ class DarniClient(ClientBase):
     def patrol(self):
         if self.location.real < 0: # Game hasn't started, do nothing
             return
+        # powerup?
+        for item in self.proximity:
+            if item["object_type"] == "powerup":
+                d = complex(*item["position"])
+                if self.line_of_sight(d):
+                    self.dest = d
+                    break
         # Pick a destination, far away, but reachable
         while abs(self.location - self.dest) < NEAR_DISTANCE or not self.line_of_sight(self.dest):
-            #print F(self.dest), "didn't work. Trying",
             self.dest = random.choice (LOCATIONS)
-            #print F(self.dest)
-            #if abs(self.location - self.dest) >= NEAR_DISTANCE and self.line_of_sight(self.dest):
-            #    print "Going ", F(self.location), "to", F(self.dest)
         # Find where I should aim at = Vector to target + compensation for velocity
         target = (self.dest-self.location) - VELOCITY_COMPENSATE*self.velocity
         self.aim(target)
@@ -174,7 +177,7 @@ class DarniClient(ClientBase):
             nrel_v = normalize(rel_v)
             nrel_p = normalize(rel_p)
             # if it's getting away, chase
-            if nrel_v.real*nrel_p.real + nrel_v.imag*nrel_p.imag > 0.1 and abs(rel_v)>4 and abs(rel_p) > 6:
+            if nrel_v.real*nrel_p.real + nrel_v.imag*nrel_p.imag > 0.1 and (abs(rel_v)>4 or abs(rel_p) > 6):
                 self.command("throttle", value=ATTACK_THRUST)
         self.aim(location-self.location)
 
