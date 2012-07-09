@@ -18,13 +18,19 @@ def get_bots_by_name():
         head, tail = os.path.split(sfile)
         if myfile == tail:
             continue
-        module = __import__(os.path.splitext(tail)[0])
-        for name, value in inspect.getmembers(module):
-            if name == "ClientBase":
-                continue
-            elif getattr(value, 'name', None) is not None and \
-               inspect.isclass(value) and not issubclass(value, BorgClient):
-                bots[value.name] = value()
+        try:
+            module = __import__(os.path.splitext(tail)[0])
+            for name, value in inspect.getmembers(module):
+                if name == "ClientBase":
+                    continue
+                elif getattr(value, 'name', None) is not None and \
+                   inspect.isclass(value) and not issubclass(value, BorgClient):
+                    try:
+                        bots[value.name] = value()
+                    except:
+                        pass
+        except:
+            pass
     return bots
 
 
