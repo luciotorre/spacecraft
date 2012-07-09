@@ -51,7 +51,10 @@ class BorgClient(ClientBase):
             enemy.messageReceived(message)
         except:
             self.enemy = None
-            del self.bots[enemy.name]
+            try:
+                del self.bots[enemy.name]
+            except:
+                pass
 
     def set_enemy(self, message):
         enemy = None
