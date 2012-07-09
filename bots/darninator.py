@@ -177,7 +177,7 @@ class DarniClient(ClientBase):
             nrel_v = normalize(rel_v)
             nrel_p = normalize(rel_p)
             # if it's getting away, chase
-            if nrel_v.real*nrel_p.real + nrel_v.imag*nrel_p.imag > 0.1 and abs(rel_v)>4 and abs(rel_p) > 6:
+            if nrel_v.real*nrel_p.real + nrel_v.imag*nrel_p.imag > 0.1 and (abs(rel_v)>4 or abs(rel_p) > 6):
                 self.command("throttle", value=ATTACK_THRUST)
         self.aim(location-self.location)
 
